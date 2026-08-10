@@ -50,7 +50,7 @@ paddacks translucency reset
 No packaging yet — clone and symlink the entry point onto your PATH.
 
 ```
-git clone https://github.com/YOURNAME/paddacks.git
+git clone https://github.com/SonicP3L1C4N/paddacks.git
 ln -s "$PWD/paddacks/bin/paddacks" ~/.local/bin/paddacks
 ```
 
