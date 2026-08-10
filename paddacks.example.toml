@@ -1,12 +1,12 @@
-# kde-fences configuration.
+# paddacks configuration.
 #
-# Copy to ~/.config/kde-fences.toml and edit, or generate a starting point
+# Copy to ~/.config/paddacks.toml and edit, or generate a starting point
 # from whatever is already on your desktop:
 #
-#     kde-fences discover > ~/.config/kde-fences.toml
+#     paddacks discover > ~/.config/paddacks.toml
 
 [settings]
-# row    - fences side by side, wrapping when they run out of width
+# row    - groups side by side, wrapping when they run out of width
 # grid   - three per row
 # column - one per row
 arrangement = "row"
@@ -16,7 +16,7 @@ arrangement = "row"
 # desktop:/ KIO worker, and that worker maps ~/Desktop and nothing else.
 # A leading dot keeps the folder from showing up as a desktop icon.
 desktop_dir = "~/Desktop"
-store = ".Fences"
+store = ".Paddacks"
 
 # Layout tuning. Defaults were measured against Plasma 6.6 at default icon
 # size; Folder View clamps anything smaller than 400x304 regardless.
@@ -26,7 +26,7 @@ store = ".Fences"
 # gap = 24
 # top = 48
 
-# Each group becomes one fence. `apps` are .desktop ids, with or without the
+# Each group becomes one group. `apps` are .desktop ids, with or without the
 # extension; they are looked up in the usual application directories plus
 # flatpak and snap export paths.
 

@@ -1,4 +1,4 @@
-"""Working out where each fence goes.
+"""Working out where each group goes.
 
 The numbers below are not guesses -- they were derived by asking Plasma for a
 size and reading back what it actually applied. Folder View refuses to go
@@ -14,14 +14,14 @@ from dataclasses import dataclass
 @dataclass
 class Metrics:
     cell: int = 132          # icon cell, width and height, at default icon size
-    header: int = 44         # title bar of the fence
+    header: int = 44         # title bar of the group
     pad_x: int = 32          # frame margins, left + right
     pad_y: int = 28          # frame margin below the last icon row
     min_width: int = 400     # enforced by Folder View itself
     min_height: int = 304    # enforced by Folder View itself
     max_columns: int = 4     # cap so wide groups wrap instead of stretching
     margin: int = 60         # screen edge inset
-    gap: int = 24            # space between fences
+    gap: int = 24            # space between groups
     top: int = 48            # y of the first row
     reserve_bottom: int = 80 # panel allowance
 
@@ -36,7 +36,7 @@ class Box:
 
 
 def size_for(count: int, m: Metrics) -> tuple[int, int]:
-    """Size a fence to hold `count` icons."""
+    """Size a group to hold `count` icons."""
     columns = max(1, min(m.max_columns, count))
     rows = max(1, math.ceil(count / columns))
     w = columns * m.cell + m.pad_x
@@ -57,9 +57,9 @@ def solve(groups: list[tuple[str, int]], screen: tuple[int, int],
 
 
 def _flow(groups, screen, m: Metrics, columns: int | None) -> list[Box]:
-    """Lay fences out left to right, wrapping when the row is full.
+    """Lay groups out left to right, wrapping when the row is full.
 
-    `columns` forces a wrap after N fences; None wraps only on running out of
+    `columns` forces a wrap after N groups; None wraps only on running out of
     horizontal room, which gives the single-row-across-the-top arrangement on
     a wide screen and degrades sanely on a narrow one.
     """

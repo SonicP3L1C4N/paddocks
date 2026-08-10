@@ -1,7 +1,7 @@
 """Optional: make applet backgrounds more transparent.
 
 This is the fragile half of the project and is deliberately separate from the
-fences. There is no setting for widget background opacity anywhere in Plasma
+groups. There is no setting for widget background opacity anywhere in Plasma
 -- the frame is painted from the desktop theme's ``widgets/background`` SVG
 (see BasicAppletContainer.qml in plasma-workspace), so the only way to change
 it is to edit that artwork.

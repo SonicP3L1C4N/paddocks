@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fences-style desktop groups for KDE Plasma 6."""
+"""Paddacks desktop groups for KDE Plasma 6."""
 
 from __future__ import annotations
 
@@ -7,23 +7,24 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The package sits alongside bin/, not inside it.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from kdefences import fences, plasma, translucency  # noqa: E402
+from paddacks import groups, plasma, translucency  # noqa: E402
 
-DEFAULT_CONFIG = Path.home() / ".config" / "kde-fences.toml"
+DEFAULT_CONFIG = Path.home() / ".config" / "paddacks.toml"
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="kde-fences", description=__doc__)
+    parser = argparse.ArgumentParser(prog="paddacks", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_apply = sub.add_parser("apply", help="create/refresh fences from a config")
+    p_apply = sub.add_parser("apply", help="create/refresh groups from a config")
     p_apply.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
     p_apply.add_argument("-n", "--dry-run", action="store_true",
                          help="print the computed layout and stop")
 
-    p_remove = sub.add_parser("remove", help="remove fences created by apply")
+    p_remove = sub.add_parser("remove", help="remove groups created by apply")
     p_remove.add_argument("--delete-store", action="store_true",
                           help="also delete the launcher folders")
 
@@ -51,18 +52,18 @@ def dispatch(args) -> int:
     if args.command == "apply":
         if not args.config.exists():
             raise FileNotFoundError(
-                f"{args.config} not found. Run `kde-fences discover > {args.config}` "
+                f"{args.config} not found. Run `paddacks discover > {args.config}` "
                 "and edit it into groups first."
             )
-        fences.apply(fences.load_config(args.config), dry_run=args.dry_run)
+        groups.apply(groups.load_config(args.config), dry_run=args.dry_run)
         return 0
 
     if args.command == "remove":
-        fences.remove(delete_store=args.delete_store)
+        groups.remove(delete_store=args.delete_store)
         return 0
 
     if args.command == "discover":
-        sys.stdout.write(fences.discover(args.desktop_dir))
+        sys.stdout.write(groups.discover(args.desktop_dir))
         return 0
 
     if args.command == "translucency":
@@ -78,9 +79,9 @@ def dispatch(args) -> int:
         return 0
 
     if args.command == "status":
-        state = fences.read_state()
+        state = groups.read_state()
         if not state.get("widgets"):
-            print("No fences currently created.")
+            print("No groups currently created.")
         else:
             print(f"Containment {state['containment']} @ {state['resolution']}")
             print(f"Store: {state['store']}")
