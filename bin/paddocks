@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paddacks desktop groups for KDE Plasma 6."""
+"""Paddocks desktop groups for KDE Plasma 6."""
 
 from __future__ import annotations
 
@@ -10,13 +10,13 @@ from pathlib import Path
 # The package sits alongside bin/, not inside it.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from paddacks import groups, plasma, translucency  # noqa: E402
+from paddocks import groups, plasma, translucency  # noqa: E402
 
-DEFAULT_CONFIG = Path.home() / ".config" / "paddacks.toml"
+DEFAULT_CONFIG = Path.home() / ".config" / "paddocks.toml"
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="paddacks", description=__doc__)
+    parser = argparse.ArgumentParser(prog="paddocks", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_apply = sub.add_parser("apply", help="create/refresh groups from a config")
@@ -52,7 +52,7 @@ def dispatch(args) -> int:
     if args.command == "apply":
         if not args.config.exists():
             raise FileNotFoundError(
-                f"{args.config} not found. Run `paddacks discover > {args.config}` "
+                f"{args.config} not found. Run `paddocks discover > {args.config}` "
                 "and edit it into groups first."
             )
         groups.apply(groups.load_config(args.config), dry_run=args.dry_run)

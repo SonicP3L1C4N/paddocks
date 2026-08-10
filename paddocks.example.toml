@@ -1,9 +1,9 @@
-# paddacks configuration.
+# paddocks configuration.
 #
-# Copy to ~/.config/paddacks.toml and edit, or generate a starting point
+# Copy to ~/.config/paddocks.toml and edit, or generate a starting point
 # from whatever is already on your desktop:
 #
-#     paddacks discover > ~/.config/paddacks.toml
+#     paddocks discover > ~/.config/paddocks.toml
 
 [settings]
 # row    - groups side by side, wrapping when they run out of width
@@ -16,7 +16,7 @@ arrangement = "row"
 # desktop:/ KIO worker, and that worker maps ~/Desktop and nothing else.
 # A leading dot keeps the folder from showing up as a desktop icon.
 desktop_dir = "~/Desktop"
-store = ".Paddacks"
+store = ".Paddocks"
 
 # Layout tuning. Defaults were measured against Plasma 6.6 at default icon
 # size; Folder View clamps anything smaller than 400x304 regardless.

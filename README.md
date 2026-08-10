@@ -1,4 +1,4 @@
-# Paddacks
+# Paddocks
 
 Grouped desktop launcher panels for KDE Plasma 6, built out of stock Folder View widgets.
 
@@ -8,7 +8,7 @@ under Wine, because it hooks the Windows shell directly. Plasma can already do
 most of what those tools are used for, but the pieces are undocumented and
 several of them fail *silently*.
 
-Paddacks is the working setup, plus — more usefully — the five things that
+Paddocks is the working setup, plus — more usefully — the five things that
 otherwise cost an afternoon each.
 
 ![Six groups laid out across the top of a 3440x1440 desktop](docs/screenshot.png)
@@ -25,24 +25,24 @@ apps = ["org.kicad.kicad", "org.kicad.pcbnew", "dk.gqrx.gqrx", "gnuradio-grc"]
 ```
 
 ```
-paddacks discover > ~/.config/paddacks.toml   # starting point from ~/Desktop
-$EDITOR ~/.config/paddacks.toml               # split into groups
-paddacks apply --dry-run                      # check the computed layout
-paddacks apply
+paddocks discover > ~/.config/paddocks.toml   # starting point from ~/Desktop
+$EDITOR ~/.config/paddocks.toml               # split into groups
+paddocks apply --dry-run                      # check the computed layout
+paddocks apply
 ```
 
 Optionally, more transparent widget backgrounds:
 
 ```
-paddacks translucency 0.4      # lower = more transparent
-paddacks translucency reset
+paddocks translucency 0.4      # lower = more transparent
+paddocks translucency reset
 ```
 
 Undo everything:
 
 ```
-paddacks remove --delete-store
-paddacks translucency reset
+paddocks remove --delete-store
+paddocks translucency reset
 ```
 
 ## Install
@@ -50,8 +50,8 @@ paddacks translucency reset
 No packaging yet — clone and symlink the entry point onto your PATH.
 
 ```
-git clone https://github.com/SonicP3L1C4N/paddacks.git
-ln -s "$PWD/paddacks/bin/paddacks" ~/.local/bin/paddacks
+git clone https://github.com/SonicP3L1C4N/paddocks.git
+ln -s "$PWD/paddocks/bin/paddocks" ~/.local/bin/paddocks
 ```
 
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
@@ -82,7 +82,7 @@ which makes it look like a labelling bug rather than a URL problem.
 Only the `desktop:/` KIO worker maps `.desktop` files to their `Name=`. So the
 URL must be `desktop:/Apps` — and because that worker maps the desktop folder and
 nothing else, the launcher store has to live inside `~/Desktop`. Naming it
-`.Paddacks` keeps it from showing up as a desktop icon.
+`.Paddocks` keeps it from showing up as a desktop icon.
 
 Get it right and the labels read as applications, not filenames:
 
@@ -187,7 +187,7 @@ from the groups — skip it if the trade is not worth it. `translucency reset`
 removes the copies.
 
 **`apply` rewrites, it does not merge.** It removes the widgets it created
-previously (tracked in `~/.local/state/paddacks/state.json`) and rebuilds from
+previously (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from
 the config. Widgets you placed by hand are left alone, but not moved out of the
 way either.
 
@@ -195,11 +195,11 @@ way either.
 
 Reports from other distros are the most useful thing — particularly whether
 `AutomaticLookAndFeel` behaves the same way, and whether the layout constants in
-`paddacks/layout.py` hold at other icon sizes and scale factors.
+`paddocks/layout.py` hold at other icon sizes and scale factors.
 
 ## Trademarks
 
-Paddacks is an independent project, not affiliated with, endorsed by, or derived
+Paddocks is an independent project, not affiliated with, endorsed by, or derived
 from any commercial desktop-organiser product. Any such products are named only
 for factual comparison, and remain the trademarks of their respective owners.
 
