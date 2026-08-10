@@ -1,0 +1,47 @@
+# kde-fences configuration.
+#
+# Copy to ~/.config/kde-fences.toml and edit, or generate a starting point
+# from whatever is already on your desktop:
+#
+#     kde-fences discover > ~/.config/kde-fences.toml
+
+[settings]
+# row    - fences side by side, wrapping when they run out of width
+# grid   - three per row
+# column - one per row
+arrangement = "row"
+
+# The launcher folders live here. This MUST be inside the desktop folder:
+# Folder View only resolves .desktop files to application names through the
+# desktop:/ KIO worker, and that worker maps ~/Desktop and nothing else.
+# A leading dot keeps the folder from showing up as a desktop icon.
+desktop_dir = "~/Desktop"
+store = ".Fences"
+
+# Layout tuning. Defaults were measured against Plasma 6.6 at default icon
+# size; Folder View clamps anything smaller than 400x304 regardless.
+# cell = 132
+# max_columns = 4
+# margin = 60
+# gap = 24
+# top = 48
+
+# Each group becomes one fence. `apps` are .desktop ids, with or without the
+# extension; they are looked up in the usual application directories plus
+# flatpak and snap export paths.
+
+[[group]]
+name = "Internet"
+apps = ["firefox", "thunderbird"]
+
+[[group]]
+name = "Office"
+apps = ["libreoffice-writer", "libreoffice-calc", "org.kde.kcalc"]
+
+[[group]]
+name = "Graphics"
+apps = ["org.kde.krita", "gimp"]
+
+[[group]]
+name = "Dev Tools"
+apps = ["code", "org.kde.konsole"]

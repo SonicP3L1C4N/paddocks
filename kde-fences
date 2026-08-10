@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Fences-style desktop groups for KDE Plasma 6."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from kdefences import fences, plasma, translucency  # noqa: E402
+
+DEFAULT_CONFIG = Path.home() / ".config" / "kde-fences.toml"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="kde-fences", description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_apply = sub.add_parser("apply", help="create/refresh fences from a config")
+    p_apply.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
+    p_apply.add_argument("-n", "--dry-run", action="store_true",
+                         help="print the computed layout and stop")
+
+    p_remove = sub.add_parser("remove", help="remove fences created by apply")
+    p_remove.add_argument("--delete-store", action="store_true",
+                          help="also delete the launcher folders")
+
+    p_discover = sub.add_parser("discover",
+                                help="emit a starter config from ~/Desktop")
+    p_discover.add_argument("--desktop-dir", type=Path,
+                            default=Path.home() / "Desktop")
+
+    p_trans = sub.add_parser("translucency", help="widget background opacity")
+    p_trans.add_argument("value", nargs="?",
+                         help="opacity 0-1 (e.g. 0.4), or 'reset'")
+
+    sub.add_parser("status", help="show what is currently set up")
+
+    args = parser.parse_args()
+
+    try:
+        return dispatch(args)
+    except (plasma.PlasmaError, ValueError, RuntimeError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def dispatch(args) -> int:
+    if args.command == "apply":
+        if not args.config.exists():
+            raise FileNotFoundError(
+                f"{args.config} not found. Run `kde-fences discover > {args.config}` "
+                "and edit it into groups first."
+            )
+        fences.apply(fences.load_config(args.config), dry_run=args.dry_run)
+        return 0
+
+    if args.command == "remove":
+        fences.remove(delete_store=args.delete_store)
+        return 0
+
+    if args.command == "discover":
+        sys.stdout.write(fences.discover(args.desktop_dir))
+        return 0
+
+    if args.command == "translucency":
+        if args.value is None:
+            print("Active themes:", ", ".join(translucency.active_themes()) or "none")
+            return 0
+        if args.value == "reset":
+            removed = translucency.reset()
+            print("Restored:", ", ".join(removed) or "nothing to restore")
+            return 0
+        touched = translucency.apply(float(args.value))
+        print(f"Patched at opacity {args.value}:", ", ".join(touched))
+        return 0
+
+    if args.command == "status":
+        state = fences.read_state()
+        if not state.get("widgets"):
+            print("No fences currently created.")
+        else:
+            print(f"Containment {state['containment']} @ {state['resolution']}")
+            print(f"Store: {state['store']}")
+            for widget in state["widgets"]:
+                print(f"  {widget['name']:<20} applet {widget['id']}")
+        print("Themes shadowed:",
+              ", ".join(t for t in translucency.active_themes()
+                        if (translucency.USER_THEMES / t).exists()) or "none")
+        return 0
+
+    raise ValueError(f"unknown command {args.command}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
