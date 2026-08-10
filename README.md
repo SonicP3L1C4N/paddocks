@@ -24,6 +24,11 @@ name = "Electronics"
 apps = ["org.kicad.kicad", "org.kicad.pcbnew", "dk.gqrx.gqrx", "gnuradio-grc"]
 ```
 
+![Two groups close up: application names, custom titles and translucent backgrounds](docs/detail.png)
+
+Launchers are listed by application name rather than `.desktop` filename, each
+group carries its own title, and the panel background is optionally translucent.
+
 ```
 paddocks discover > ~/.config/paddocks.toml   # starting point from ~/Desktop
 $EDITOR ~/.config/paddocks.toml               # split into groups
@@ -84,9 +89,8 @@ URL must be `desktop:/Apps` — and because that worker maps the desktop folder 
 nothing else, the launcher store has to live inside `~/Desktop`. Naming it
 `.Paddocks` keeps it from showing up as a desktop icon.
 
-Get it right and the labels read as applications, not filenames:
-
-![Two groups close up, showing application names rather than .desktop filenames](docs/detail.png)
+Get it right and the labels read as applications, not filenames — see the
+[close-up above](#what-you-get).
 
 ### 2. Plasma's scripting API cannot position widgets
 
