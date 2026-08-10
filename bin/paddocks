@@ -24,9 +24,7 @@ def main() -> int:
     p_apply.add_argument("-n", "--dry-run", action="store_true",
                          help="print the computed layout and stop")
 
-    p_remove = sub.add_parser("remove", help="remove groups created by apply")
-    p_remove.add_argument("--delete-store", action="store_true",
-                          help="also delete the launcher folders")
+    sub.add_parser("remove", help="remove groups created by apply")
 
     p_discover = sub.add_parser("discover",
                                 help="emit a starter config from ~/Desktop")
@@ -59,7 +57,7 @@ def dispatch(args) -> int:
         return 0
 
     if args.command == "remove":
-        groups.remove(delete_store=args.delete_store)
+        groups.remove()
         return 0
 
     if args.command == "discover":
@@ -84,7 +82,6 @@ def dispatch(args) -> int:
             print("No groups currently created.")
         else:
             print(f"Containment {state['containment']} @ {state['resolution']}")
-            print(f"Store: {state['store']}")
             for widget in state["widgets"]:
                 print(f"  {widget['name']:<20} applet {widget['id']}")
         print("Themes shadowed:",

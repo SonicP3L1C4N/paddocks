@@ -1,6 +1,6 @@
 # Paddocks
 
-Grouped desktop launcher panels for KDE Plasma 6, built out of stock Folder View widgets.
+Grouped desktop launcher panels for KDE Plasma 6, built out of stock Plasma widgets.
 
 Windows has several tools that group desktop icons into titled, translucent
 panels. Linux has none of them — the best known is Windows-only and will not run
@@ -15,7 +15,7 @@ otherwise cost an afternoon each.
 
 ## What you get
 
-Each group becomes a titled Folder View widget on the desktop, positioned and
+Each group becomes a titled Quicklaunch widget on the desktop, positioned and
 sized automatically from a small TOML file.
 
 ```toml
@@ -26,8 +26,9 @@ apps = ["org.kicad.kicad", "org.kicad.pcbnew", "dk.gqrx.gqrx", "gnuradio-grc"]
 
 ![Two groups close up: application names, custom titles and translucent backgrounds](docs/detail.png)
 
-Launchers are listed by application name rather than `.desktop` filename, each
-group carries its own title, and the panel background is optionally translucent.
+Launchers show their application name, each group carries its own title, and
+the panel background is optionally translucent. Clicking launches; dragging an
+application onto a group adds it.
 
 ```
 paddocks discover > ~/.config/paddocks.toml   # starting point from ~/Desktop
@@ -46,7 +47,7 @@ paddocks translucency reset
 Undo everything:
 
 ```
-paddocks remove --delete-store
+paddocks remove
 paddocks translucency reset
 ```
 
@@ -66,9 +67,10 @@ Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 
 | Capability | Status |
 |---|---|
-| Grouped, titled icon panels | ✅ |
-| Live view of a folder | ✅ a group *is* a folder |
+| Grouped, titled launcher panels | ✅ |
+| Click to launch, drag to add | ✅ |
 | Translucent backgrounds | ✅ see caveats |
+| Arbitrary files and folders in a group | ❌ launchers only |
 | Multiple desktop pages | ✅ use Plasma Activities (not managed here) |
 | Roll-up / collapse a panel | ❌ no equivalent in Plasma |
 | Double-click desktop to hide icons | ❌ no equivalent |
@@ -78,19 +80,42 @@ Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 
 None of this is documented, and most of it fails without an error message.
 
-### 1. `file://` makes every launcher show its filename
+### 1. Folder View looks like the right widget, and is a dead end
 
-A Folder View pointed at `file:///home/you/Desktop/Apps` renders
-`org.kicad.pcbnew.desktop`, not `PCB Editor`. The *icon* resolves correctly,
-which makes it look like a labelling bug rather than a URL problem.
+The obvious way to build this is a Folder View widget per group, pointed at a
+folder of `.desktop` files. Both available URL schemes fail, in different ways:
 
-Only the `desktop:/` KIO worker maps `.desktop` files to their `Name=`. So the
-URL must be `desktop:/Apps` — and because that worker maps the desktop folder and
-nothing else, the launcher store has to live inside `~/Desktop`. Naming it
-`.Paddocks` keeps it from showing up as a desktop icon.
+* **`file:///home/you/Desktop/Apps`** — renders `org.kicad.pcbnew.desktop`
+  instead of `PCB Editor`. The *icon* resolves correctly, so it reads as a
+  labelling bug rather than a URL problem. Only the `desktop:/` KIO worker maps
+  `.desktop` files to their `Name=`.
+* **`desktop:/Apps`** — labels are correct, and it looks like the answer. But
+  `kio_desktop` only implements part of the protocol for subpaths. Listing works;
+  **launching is a silent no-op and file changes are never noticed**. Click an
+  icon and nothing happens, with nothing logged. Drop a new launcher in and the
+  widget never shows it, though the file lands on disk.
 
-Get it right and the labels read as applications, not filenames — see the
-[close-up above](#what-you-get).
+That second failure is worth spelling out, because it costs a day to trust and
+then unpick. Verified with `kioclient exec`:
+
+| URL passed to KIO | Result |
+|---|---|
+| `/home/you/Desktop/Apps/kcalc.desktop` | launches |
+| `desktop:/Apps/kcalc.desktop` | exits 0, launches nothing |
+| same, file made executable | exits 0, launches nothing |
+| `desktop:/Apps` (listing) | works fine |
+
+Launching only works at the desktop *root* — any grouping folder breaks it. So
+the trade is: correct labels or working launchers, never both.
+
+**Use Quicklaunch instead.** `org.kde.plasma.quicklaunch` stores `file://` URLs
+pointing straight at installed `.desktop` files, renders them by application
+name, launches them, and accepts drag-and-drop. It is the right widget for
+grouping launchers; Folder View is the right widget for showing a folder.
+
+One non-obvious key: set `maxSectionCount` to the number of icon rows you want.
+Without it Quicklaunch flows every launcher into a single row and shrinks the
+icons to fit, so icon size ends up varying from group to group.
 
 ### 2. Plasma's scripting API cannot position widgets
 
@@ -182,8 +207,9 @@ Most distro themes are sparse — Kubuntu's are 20K of colours — and fall back
 internals are not a stable interface. A Plasma point release can change the
 format; if panels land in the wrong place after an update, check that first.
 
-**Folder View enforces a minimum size** of roughly 400×304. Groups of one or two
-items come out larger than their contents need, and there is no way around it.
+**Groups hold application launchers, not files.** Quicklaunch is a launcher
+widget; if you want a group that holds documents or folders, that is Folder
+View's job, with the caveats in gotcha #1.
 
 **`translucency` shadows system themes.** While the shadow copies exist, distro
 updates to those themes stop reaching you. That is why it is a separate command
@@ -193,7 +219,13 @@ removes the copies.
 **`apply` rewrites, it does not merge.** It removes the widgets it created
 previously (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from
 the config. Widgets you placed by hand are left alone, but not moved out of the
-way either.
+way either. Launchers you add by dragging onto a group live in that widget's
+config, so `apply` will discard them — add them to the TOML instead.
+
+**Do not `resolve()` launcher paths.** Flatpak's `exports/share/applications`
+is a symlink farm into content-addressed store paths. Following those symlinks
+bakes a commit hash into the URL, and every flatpak launcher breaks on the next
+update of that app. Use the export path as-is.
 
 ## Contributing
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -37,14 +36,6 @@ class Config:
     groups: list[Group]
     metrics: Metrics = field(default_factory=Metrics)
     arrangement: str = "row"
-    desktop_dir: Path = field(default_factory=lambda: Path.home() / "Desktop")
-    store: str = ".Paddocks"
-
-    @property
-    def store_path(self) -> Path:
-        # Resolved, not joined: Path.parents is purely lexical, so an unresolved
-        # "../elsewhere" would still look like a child of desktop_dir.
-        return (self.desktop_dir / self.store).resolve()
 
 
 def load_config(path: Path) -> Config:
@@ -52,30 +43,20 @@ def load_config(path: Path) -> Config:
         raw = tomllib.load(fh)
 
     settings = raw.get("settings", {})
-    metric_fields = {f for f in Metrics.__dataclass_fields__}
+    metric_fields = set(Metrics.__dataclass_fields__)
     metrics = Metrics(**{k: v for k, v in settings.items() if k in metric_fields})
-
-    desktop_dir = Path(settings.get("desktop_dir", "~/Desktop")).expanduser().resolve()
-    store = settings.get("store", ".Paddocks")
 
     groups = [Group(name=g["name"], apps=list(g.get("apps", [])))
               for g in raw.get("group", [])]
     if not groups:
         raise ValueError(f"{path} defines no [[group]] entries")
 
-    cfg = Config(groups=groups, metrics=metrics,
-                 arrangement=settings.get("arrangement", "row"),
-                 desktop_dir=desktop_dir, store=store)
-
-    # The desktop: KIO worker only maps the desktop folder. A store outside it
-    # would work, but every launcher would show as "org.kde.kate.desktop".
-    if cfg.desktop_dir not in cfg.store_path.parents:
-        raise ValueError("store must live inside desktop_dir for desktop:/ URLs to resolve")
-    return cfg
+    return Config(groups=groups, metrics=metrics,
+                  arrangement=settings.get("arrangement", "row"))
 
 
 def resolve_launcher(app_id: str) -> Path | None:
-    """Find a .desktop file by its id (with or without the extension)."""
+    """Find an installed .desktop file by its id (with or without extension)."""
     name = app_id if app_id.endswith(".desktop") else f"{app_id}.desktop"
     for directory in APP_DIRS:
         candidate = directory / name
@@ -84,31 +65,19 @@ def resolve_launcher(app_id: str) -> Path | None:
     return None
 
 
-def build_store(cfg: Config, verbose: bool = True) -> tuple[int, list[str]]:
-    """Create the group folders and symlink each group's launchers in."""
-    linked, missing = 0, []
-    cfg.store_path.mkdir(parents=True, exist_ok=True)
-    for group in cfg.groups:
-        folder = cfg.store_path / group.name
-        folder.mkdir(exist_ok=True)
-        for app in group.apps:
-            source = resolve_launcher(app)
-            if source is None:
-                missing.append(f"{group.name}/{app}")
-                continue
-            link = folder / source.name
-            if link.is_symlink() or link.exists():
-                link.unlink()
-            link.symlink_to(source)
-            linked += 1
-            if verbose:
-                print(f"  {group.name}/{source.name}")
-    return linked, missing
-
-
-def desktop_url(cfg: Config, group: Group) -> str:
-    relative = (cfg.store_path / group.name).relative_to(cfg.desktop_dir)
-    return f"desktop:/{relative}"
+def resolve_group(group: Group) -> tuple[list[str], list[str]]:
+    """Return (launcher urls, missing app ids) for one group."""
+    urls, missing = [], []
+    for app in group.apps:
+        source = resolve_launcher(app)
+        if source is None:
+            missing.append(app)
+        else:
+            # Deliberately NOT resolve(): flatpak's exports directory is a
+            # symlink farm into content-addressed paths, so resolving would
+            # bake in a commit hash that changes on the next app update.
+            urls.append(source.as_uri())
+    return urls, missing
 
 
 def read_state() -> dict:
@@ -125,21 +94,25 @@ def write_state(state: dict) -> None:
 def apply(cfg: Config, dry_run: bool = False) -> None:
     screen = plasma.screen_geometry()
     resolution = f"{screen[0]}x{screen[1]}"
-    counts = [(g.name, len(g.apps)) for g in cfg.groups]
+
+    resolved: list[tuple[Group, list[str]]] = []
+    problems: list[str] = []
+    for group in cfg.groups:
+        urls, missing = resolve_group(group)
+        resolved.append((group, urls))
+        problems += [f"{group.name}/{m}" for m in missing]
+
+    counts = [(g.name, len(urls)) for g, urls in resolved]
     boxes = solve(counts, screen, cfg.metrics, cfg.arrangement)
 
     print(f"Screen {resolution}, arrangement {cfg.arrangement!r}")
-    for box in boxes:
-        print(f"  {box.name:<20} {box.x},{box.y}  {box.w}x{box.h}")
+    for box, (_, urls) in zip(boxes, resolved):
+        print(f"  {box.name:<20} {len(urls):>2} apps   {box.x},{box.y}  {box.w}x{box.h}  {box.rows} row(s)")
+    for item in problems:
+        print(f"  !! not installed: {item}")
     if dry_run:
         print("\n(dry run, nothing changed)")
         return
-
-    print("\nLinking launchers:")
-    linked, missing = build_store(cfg)
-    print(f"  {linked} linked")
-    for item in missing:
-        print(f"  !! not found: {item}")
 
     state = read_state()
     if state.get("widgets"):
@@ -147,8 +120,8 @@ def apply(cfg: Config, dry_run: bool = False) -> None:
         plasma.remove_widgets([w["id"] for w in state["widgets"]])
 
     print("Creating widgets")
-    ids = plasma.add_folder_widgets(
-        [(g.name, desktop_url(cfg, g)) for g in cfg.groups]
+    ids = plasma.add_quicklaunch_widgets(
+        [(g.name, urls, box.rows) for (g, urls), box in zip(resolved, boxes)]
     )
     containment = plasma.desktop_containment()
 
@@ -164,34 +137,26 @@ def apply(cfg: Config, dry_run: bool = False) -> None:
     state.update({
         "containment": containment,
         "resolution": resolution,
-        "store": str(cfg.store_path),
         "widgets": [{"name": n, "id": i} for n, i in ids.items()],
     })
     write_state(state)
     print(f"\nDone. {len(ids)} groups placed.")
 
 
-def remove(delete_store: bool = False) -> None:
+def remove() -> None:
     state = read_state()
     widgets = state.get("widgets", [])
     if not widgets:
         print("No groups recorded in state; nothing to remove.")
-    else:
-        removed = plasma.remove_widgets([w["id"] for w in widgets])
-        print(f"Removed {removed} widgets")
-        state["widgets"] = []
-        write_state(state)
-
-    store = state.get("store")
-    if delete_store and store and Path(store).exists():
-        shutil.rmtree(store)
-        print(f"Deleted {store}")
-    elif store:
-        print(f"Launcher store left at {store} (pass --delete-store to remove)")
+        return
+    removed = plasma.remove_widgets([w["id"] for w in widgets])
+    print(f"Removed {removed} widgets")
+    state["widgets"] = []
+    write_state(state)
 
 
 def discover(desktop_dir: Path) -> str:
-    """Emit a starter config from whatever is already on the desktop."""
+    """Emit a starter config from whatever launchers are already on the desktop."""
     entries = sorted(p.stem for p in desktop_dir.glob("*.desktop"))
     lines = [
         "# Generated by `paddocks discover`.",

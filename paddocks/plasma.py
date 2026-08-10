@@ -112,25 +112,31 @@ def desktop_containment() -> int:
     return int(out)
 
 
-def add_folder_widgets(entries: list[tuple[str, str]]) -> dict[str, int]:
-    """Create one Folder View widget per (title, url). Returns title -> applet id.
+def add_quicklaunch_widgets(entries: list[tuple[str, list[str]]]) -> dict[str, int]:
+    """Create one Quicklaunch widget per (title, launcher urls).
 
-    The url should use the ``desktop:/`` scheme, not ``file://``. Folder View
-    renders ``.desktop`` files with their raw filename under ``file://``; only
-    the desktop: KIO worker resolves them to application names. That worker
-    maps ~/Desktop only, which is why the store has to live there.
+    Quicklaunch stores ``file://`` URLs pointing straight at the installed
+    ``.desktop`` files and renders them by application name. Folder View was
+    the obvious choice here and is the wrong one: pointed at a plain
+    ``file://`` folder it labels every entry with its raw filename, and pointed
+    at ``desktop:/`` it labels them correctly but will not launch anything and
+    never notices files being added. See the README.
     """
-    payload = json.dumps([{"title": t, "url": u} for t, u in entries])
+    payload = json.dumps([{"title": t, "urls": u, "rows": r} for t, u, r in entries])
     out = run_script(f"""
         var entries = {payload};
         var d = desktops()[0];
         var out = [];
         for (var i = 0; i < entries.length; i++) {{
-            var w = d.addWidget("org.kde.plasma.folder");
+            var w = d.addWidget("org.kde.plasma.quicklaunch");
             w.currentConfigGroup = ["General"];
-            w.writeConfig("url", entries[i].url);
-            w.writeConfig("labelMode", 3);       // 3 = custom title
-            w.writeConfig("labelText", entries[i].title);
+            w.writeConfig("launcherUrls", entries[i].urls);
+            w.writeConfig("title", entries[i].title);
+            w.writeConfig("showLauncherNames", true);
+            w.writeConfig("enablePopup", false);
+            // Without this Quicklaunch flows everything into one row and
+            // shrinks the icons to fit, so icon size varies per group.
+            w.writeConfig("maxSectionCount", entries[i].rows);
             w.reloadConfig();
             out.push(entries[i].title + "\\t" + w.id);
         }}

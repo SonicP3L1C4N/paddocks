@@ -11,24 +11,17 @@
 # column - one per row
 arrangement = "row"
 
-# The launcher folders live here. This MUST be inside the desktop folder:
-# Folder View only resolves .desktop files to application names through the
-# desktop:/ KIO worker, and that worker maps ~/Desktop and nothing else.
-# A leading dot keeps the folder from showing up as a desktop icon.
-desktop_dir = "~/Desktop"
-store = ".Paddocks"
-
-# Layout tuning. Defaults were measured against Plasma 6.6 at default icon
-# size; Folder View clamps anything smaller than 400x304 regardless.
-# cell = 132
+# Layout tuning. Defaults measured against Plasma 6.6. max_columns caps how
+# wide a group gets before it wraps to a second icon row.
+# cell = 140
 # max_columns = 4
 # margin = 60
 # gap = 24
 # top = 48
 
-# Each group becomes one group. `apps` are .desktop ids, with or without the
-# extension; they are looked up in the usual application directories plus
-# flatpak and snap export paths.
+# Each group becomes one Quicklaunch widget. `apps` are .desktop ids, with or
+# without the extension; they are looked up in the usual application
+# directories plus flatpak and snap export paths.
 
 [[group]]
 name = "Internet"
