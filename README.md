@@ -117,6 +117,12 @@ One non-obvious key: set `maxSectionCount` to the number of icon rows you want.
 Without it Quicklaunch flows every launcher into a single row and shrinks the
 icons to fit, so icon size ends up varying from group to group.
 
+A second, subtler one: Quicklaunch *balances* icons across the rows it is given,
+so six icons in two rows render 3+3 rather than 4+2. Size the widget to that
+balanced column count. Size it to the maximum instead and Quicklaunch scales the
+icons up to fill the extra width, leaving every group a slightly different icon
+size — which reads as sloppy without being obviously wrong.
+
 ### 2. Plasma's scripting API cannot position widgets
 
 `desktop.addWidget()` works. Positioning it does not:

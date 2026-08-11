@@ -11,6 +11,10 @@
 # column - one per row
 arrangement = "row"
 
+# center - each row centred on screen, mixed-height groups centred within it
+# left   - rows start at the left margin, groups aligned to the top
+align = "center"
+
 # Layout tuning. Defaults measured against Plasma 6.6. max_columns caps how
 # wide a group gets before it wraps to a second icon row.
 # cell = 140

@@ -24,6 +24,7 @@ class Metrics:
     gap: int = 24            # space between groups
     top: int = 48            # y of the first row
     reserve_bottom: int = 80 # panel allowance
+    align: str = "center"    # "center" or "left" within each row
 
 
 @dataclass
@@ -44,6 +45,11 @@ def size_for(count: int, m: Metrics) -> tuple[int, int, int]:
     """
     columns = max(1, min(m.max_columns, count))
     rows = max(1, math.ceil(count / columns))
+    # Quicklaunch balances icons evenly across the rows it is given: 6 icons in
+    # 2 rows renders 3+3, not 4+2. Size the box to the balanced column count or
+    # it comes out too wide and Quicklaunch scales the icons up to fill it,
+    # leaving every group a slightly different icon size.
+    columns = math.ceil(count / rows)
     w = columns * m.cell + m.pad_x
     h = m.header + rows * m.cell + m.pad_y
     return max(w, m.min_width), max(h, m.min_height), rows
@@ -71,6 +77,7 @@ def _flow(groups, screen, m: Metrics, columns: int | None) -> list[Box]:
     screen_w, screen_h = screen
     limit = screen_w - m.margin
     boxes: list[Box] = []
+    rows_of_boxes: list[list[Box]] = []
 
     x, y, row_h, in_row = m.margin, m.top, 0, 0
     for name, count in groups:
@@ -81,10 +88,17 @@ def _flow(groups, screen, m: Metrics, columns: int | None) -> list[Box]:
             x = m.margin
             y += row_h + m.gap
             row_h, in_row = 0, 0
-        boxes.append(Box(name, x, y, w, h, rows))
+        box = Box(name, x, y, w, h, rows)
+        boxes.append(box)
+        if in_row == 0:
+            rows_of_boxes.append([])
+        rows_of_boxes[-1].append(box)
         x += w + m.gap
         row_h = max(row_h, h)
         in_row += 1
+
+    if m.align == "center":
+        _center(rows_of_boxes, screen_w)
 
     overflow = (y + row_h) - (screen_h - m.reserve_bottom)
     if overflow > 0:
@@ -93,3 +107,21 @@ def _flow(groups, screen, m: Metrics, columns: int | None) -> list[Box]:
             f"reduce max_columns, cell size, or use fewer groups"
         )
     return boxes
+
+
+def _center(rows_of_boxes: list[list[Box]], screen_w: int) -> None:
+    """Centre each row horizontally, and centre shorter groups within it.
+
+    Groups in a row differ in height whenever they differ in icon-row count,
+    so left/top alignment leaves a ragged bottom edge. Centring both axes makes
+    a mixed row read as one deliberate band.
+    """
+    for row in rows_of_boxes:
+        if not row:
+            continue
+        span = (row[-1].x + row[-1].w) - row[0].x
+        shift = (screen_w - span) // 2 - row[0].x
+        tallest = max(b.h for b in row)
+        for box in row:
+            box.x += shift
+            box.y += (tallest - box.h) // 2
