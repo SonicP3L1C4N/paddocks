@@ -91,7 +91,7 @@ def write_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2))
 
 
-def apply(cfg: Config, dry_run: bool = False) -> None:
+def apply(cfg: Config, dry_run: bool = False, strict: bool = False) -> None:
     screen = plasma.screen_geometry()
     resolution = f"{screen[0]}x{screen[1]}"
 
@@ -110,6 +110,15 @@ def apply(cfg: Config, dry_run: bool = False) -> None:
         print(f"  {box.name:<20} {len(urls):>2} apps   {box.x},{box.y}  {box.w}x{box.h}  {box.rows} row(s)")
     for item in problems:
         print(f"  !! not installed: {item}")
+
+    # Checked before anything is torn down, so a strict failure leaves the
+    # existing groups exactly as they were.
+    if strict and problems:
+        raise ValueError(
+            f"{len(problems)} launcher(s) did not resolve and --strict is set; "
+            "nothing was changed"
+        )
+
     if dry_run:
         print("\n(dry run, nothing changed)")
         return

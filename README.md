@@ -37,6 +37,15 @@ paddocks apply --dry-run                      # check the computed layout
 paddocks apply
 ```
 
+An app id that no longer resolves to an installed `.desktop` file is reported
+as `!! not installed` and skipped, and the group is built without it. Pass
+`--strict` to make that an error instead — useful once a config is settled, or
+when driving `apply` from a script:
+
+```
+paddocks apply --strict        # exits 1, changes nothing, if any id is missing
+```
+
 Optionally, more transparent widget backgrounds:
 
 ```

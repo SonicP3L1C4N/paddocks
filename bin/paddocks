@@ -23,6 +23,9 @@ def main() -> int:
     p_apply.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
     p_apply.add_argument("-n", "--dry-run", action="store_true",
                          help="print the computed layout and stop")
+    p_apply.add_argument("-s", "--strict", action="store_true",
+                         help="fail instead of building groups with launchers "
+                              "missing (e.g. after an app is uninstalled)")
 
     sub.add_parser("remove", help="remove groups created by apply")
 
@@ -53,7 +56,8 @@ def dispatch(args) -> int:
                 f"{args.config} not found. Run `paddocks discover > {args.config}` "
                 "and edit it into groups first."
             )
-        groups.apply(groups.load_config(args.config), dry_run=args.dry_run)
+        groups.apply(groups.load_config(args.config),
+                     dry_run=args.dry_run, strict=args.strict)
         return 0
 
     if args.command == "remove":
