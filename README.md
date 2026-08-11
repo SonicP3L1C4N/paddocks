@@ -24,7 +24,7 @@ name = "Electronics"
 apps = ["org.kicad.kicad", "org.kicad.pcbnew", "dk.gqrx.gqrx", "gnuradio-grc"]
 ```
 
-![Two groups close up: application names, custom titles and translucent backgrounds](docs/detail.png)
+![A single group close up: custom title, application names, translucent background](docs/detail.png)
 
 Launchers show their application name, each group carries its own title, and
 the panel background is optionally translucent. Clicking launches; dragging an
