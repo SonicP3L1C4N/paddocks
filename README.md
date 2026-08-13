@@ -1,153 +1,20 @@
-# Paddocks
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="icons/paddocks-dark-64.png">
+    <img src="icons/paddocks-light-64.png" alt="" width="32">
+  </picture>
+  Paddocks
+</h1>
 
 Grouped desktop launcher panels for KDE Plasma 6, built out of stock Plasma widgets.
 
 Windows has several tools that group desktop icons into titled, translucent
-panels. Linux has none of them — the best known is Windows-only and will not run
-under Wine, because it hooks the Windows shell directly. Plasma can already do
-most of what those tools are used for, but the pieces are undocumented and
-several of them fail *silently*.
-
+panels; Linux has none of them. Plasma can already do most of what they are used
+for, but the pieces are undocumented and several of them fail *silently*.
 Paddocks is the working setup, plus — more usefully — the five things that
 otherwise cost an afternoon each.
 
 ![Six groups laid out across the top of a 3440x1440 desktop](docs/screenshot.png)
-
-## What you get
-
-Each group becomes a titled Quicklaunch widget on the desktop, positioned and
-sized automatically from a small TOML file.
-
-```toml
-[[group]]
-name = "Electronics"
-apps = ["org.kicad.kicad", "org.kicad.pcbnew", "dk.gqrx.gqrx", "gnuradio-grc"]
-```
-
-![A single group close up: custom title, application names, translucent background](docs/detail.png)
-
-Launchers show their application name, each group carries its own title, and
-the panel background is optionally translucent. Clicking launches; dragging an
-application onto a group adds it.
-
-```
-paddocks discover > ~/.config/paddocks.toml   # every installed app, pre-grouped
-$EDITOR ~/.config/paddocks.toml               # cut it down to what you use
-paddocks apply --dry-run                      # check the computed layout
-paddocks apply
-```
-
-Or skip all of that and do it in one window — the editor lists every installed
-application to pick from, so there is nothing to discover, and applies from the
-same window:
-
-```
-paddocks edit
-```
-
-`discover` reads every installed `.desktop` file and buckets it by the
-`Categories=` field, which is roughly the grouping the application menu already
-shows, and annotates each id with the application name so the config is
-editable without looking anything up:
-
-```toml
-[[group]]
-name = "Graphics"
-apps = [
-    "org.blender.Blender",   # Blender
-    "org.inkscape.Inkscape", # Inkscape
-    "org.kde.krita",         # Krita
-]
-```
-
-That is deliberately more than fits on a screen — it is a list to delete from.
-`--desktop-only` narrows it to apps that already have a launcher in `~/Desktop`,
-and `--all` adds the System and Settings entries that are otherwise left out.
-
-## The editor
-
-`paddocks edit` opens a Qt window over the same config, for when hand-editing
-TOML is not the point.
-
-![The editor: groups, group contents, and the installed application list](docs/editor.png)
-
-Groups on the left, the selected group's applications in the middle, every
-installed application on the right. Drag within either list to reorder, drag a
-group up or down to change where it lands on screen, and double-click an
-application to add or remove it. **Preview** shows the computed layout without
-touching anything; **Save & Apply** writes the config and rebuilds the desktop.
-
-An id in your config that no longer resolves is shown in red and kept, rather
-than quietly dropped on the next save — the application may just be
-temporarily uninstalled. Applications whose `Name=` is ambiguous (two packagings
-of Discord, say) have their id spelled out next to them.
-
-Saving rewrites the file in a canonical form: settings that differ from the
-defaults, then the groups in order, each id annotated with its application
-name. **Comments you wrote by hand do not survive that.** Python has no TOML
-writer in its standard library and the round-trip libraries that preserve
-comments are a dependency the rest of this does not need. Edit by hand or edit
-in the GUI; mixing the two costs you your comments.
-
-The editor needs PyQt6 (`sudo apt install python3-pyqt6`). Everything else
-works without it.
-
-### In the application menu
-
-```
-paddocks install-desktop          # menu entry + icons, matching your theme
-paddocks install-desktop --remove # take them out again
-```
-
-This writes `paddocks.desktop` into `~/.local/share/applications` and the icon
-into `~/.local/share/icons/hicolor`, so Paddocks appears in the launcher and
-the taskbar shows its own icon rather than a generic one. The icon ships in
-dark and light variants; the one matching your current colour scheme is
-installed unless you pass `--variant dark` or `--variant light`.
-
-The `.desktop` file is generated rather than checked in, because `Exec=` has to
-carry the absolute path of wherever you cloned this. Move the clone and run
-`install-desktop` again.
-
-### App ids
-
-Ids do not have to be the exact `.desktop` filename. The same application is
-`firefox` from a distro package, `firefox_firefox` from a snap and
-`org.mozilla.firefox` from a flatpak, so `apps` entries are also matched against
-the reverse-DNS tail, the snap-style suffix, and the launcher's `Name=`. A match
-that was not exact is reported, so you can tighten the config if you want to:
-
-```
-~~ matched by name: Office and Web/firefox -> firefox_firefox
-```
-
-An id that resolves to nothing is reported with the nearest candidates and
-skipped, and the group is built without it:
-
-```
-!! not installed: Dev Tools/vscode  (did you mean: code, discord?)
-```
-
-Pass `--strict` to make that an error instead — useful once a config is settled,
-or when driving `apply` from a script:
-
-```
-paddocks apply --strict        # exits 1, changes nothing, if any id is missing
-```
-
-Optionally, more transparent widget backgrounds:
-
-```
-paddocks translucency 0.4      # lower = more transparent
-paddocks translucency reset
-```
-
-Undo everything:
-
-```
-paddocks remove
-paddocks translucency reset
-```
 
 ## Install
 
@@ -161,8 +28,91 @@ paddocks install-desktop        # optional: menu entry and icon
 
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 `qdbus6` / `kwriteconfig6` / `kquitapp6`, all standard on a Plasma install.
-`paddocks edit` additionally needs PyQt6 (`python3-pyqt6`); the command line
-has no third-party dependencies at all.
+`paddocks edit` additionally needs PyQt6 (`python3-pyqt6`); the command line has
+no third-party dependencies at all.
+
+## Use
+
+Each group becomes a titled Quicklaunch widget, positioned and sized
+automatically from a small TOML file. Clicking launches; dragging an application
+onto a group adds it.
+
+![A single group close up: custom title, application names, translucent background](docs/detail.png)
+
+```
+paddocks discover > ~/.config/paddocks.toml   # every installed app, pre-grouped
+$EDITOR ~/.config/paddocks.toml               # cut it down to what you use
+paddocks apply --dry-run                      # check the computed layout
+paddocks apply
+```
+
+`discover` buckets every installed `.desktop` file by its `Categories=` field —
+roughly the grouping the application menu already shows — and annotates each id
+with the application name, so it is a list to delete from rather than one to
+write:
+
+```toml
+[[group]]
+name = "Graphics"
+apps = [
+    "org.blender.Blender",   # Blender
+    "org.inkscape.Inkscape", # Inkscape
+    "org.kde.krita",         # Krita
+]
+```
+
+### The editor
+
+`paddocks edit` does the same job in a window: groups on the left, the selected
+group's applications in the middle, everything installed on the right.
+
+![The editor: groups, group contents, and the installed application list](docs/editor.png)
+
+Drag within either list to reorder, drag a group up or down to change where it
+lands on screen, double-click an application to add or remove it. **Preview**
+shows the computed layout without touching anything; **Save & Apply** writes the
+config and rebuilds the desktop. An id that no longer resolves is shown in red
+and kept rather than quietly dropped — the application may only be temporarily
+uninstalled.
+
+Saving rewrites the file canonically: settings that differ from the defaults,
+then the groups in order. **Hand-written comments do not survive that.** Python
+has no TOML writer in its standard library, and the round-trip libraries that
+preserve comments are a dependency the rest of this does not need.
+
+### App ids
+
+Ids do not have to be the exact `.desktop` filename. The same application is
+`firefox` from a distro package, `firefox_firefox` from a snap and
+`org.mozilla.firefox` from a flatpak, so entries are also matched on the
+reverse-DNS tail, the snap-style suffix and the launcher's `Name=`. Anything
+inexact is reported so you can tighten the config, and a miss suggests the
+nearest ids instead of just failing:
+
+```
+~~ matched by name: Office and Web/firefox -> firefox_firefox
+!! not installed: Dev Tools/vscode  (did you mean: code, discord?)
+```
+
+### Commands
+
+| | |
+|---|---|
+| `paddocks discover` | starter config from installed apps — `--desktop-only`, `--all` |
+| `paddocks apply` | build the groups — `--dry-run`, `--strict` |
+| `paddocks edit` | the editor window |
+| `paddocks status` | what is currently set up |
+| `paddocks remove` | take the groups away again |
+| `paddocks translucency 0.4` | widget background opacity, lower is more transparent; `reset` to undo |
+| `paddocks install-desktop` | menu entry and icon — `--remove`, `--variant dark\|light` |
+
+`--strict` turns a launcher that does not resolve into an error that changes
+nothing, for once a config is settled or when driving `apply` from a script.
+
+`install-desktop` writes `paddocks.desktop` into `~/.local/share/applications`
+and the icon into `~/.local/share/icons/hicolor`. The entry is generated rather
+than checked in, because `Exec=` has to carry the absolute path of wherever you
+cloned this — move the clone and run it again.
 
 ## What it does and does not cover
 
@@ -181,23 +131,22 @@ has no third-party dependencies at all.
 
 None of this is documented, and most of it fails without an error message.
 
-### 1. Folder View looks like the right widget, and is a dead end
+<details>
+<summary><b>1. Folder View looks like the right widget, and is a dead end</b></summary>
 
-The obvious way to build this is a Folder View widget per group, pointed at a
-folder of `.desktop` files. Both available URL schemes fail, in different ways:
+The obvious build is a Folder View per group, pointed at a folder of `.desktop`
+files. Both available URL schemes fail, in different ways:
 
 * **`file:///home/you/Desktop/Apps`** — renders `org.kicad.pcbnew.desktop`
   instead of `PCB Editor`. The *icon* resolves correctly, so it reads as a
   labelling bug rather than a URL problem. Only the `desktop:/` KIO worker maps
   `.desktop` files to their `Name=`.
 * **`desktop:/Apps`** — labels are correct, and it looks like the answer. But
-  `kio_desktop` only implements part of the protocol for subpaths. Listing works;
-  **launching is a silent no-op and file changes are never noticed**. Click an
-  icon and nothing happens, with nothing logged. Drop a new launcher in and the
-  widget never shows it, though the file lands on disk.
+  `kio_desktop` only implements part of the protocol for subpaths: listing works,
+  **launching is a silent no-op**, and new files are never noticed.
 
-That second failure is worth spelling out, because it costs a day to trust and
-then unpick. Verified with `kioclient exec`:
+That second one costs a day to trust and then unpick. Verified with
+`kioclient exec`:
 
 | URL passed to KIO | Result |
 |---|---|
@@ -207,24 +156,23 @@ then unpick. Verified with `kioclient exec`:
 | `desktop:/Apps` (listing) | works fine |
 
 Launching only works at the desktop *root* — any grouping folder breaks it. So
-the trade is: correct labels or working launchers, never both.
+the trade is correct labels or working launchers, never both.
 
 **Use Quicklaunch instead.** `org.kde.plasma.quicklaunch` stores `file://` URLs
 pointing straight at installed `.desktop` files, renders them by application
-name, launches them, and accepts drag-and-drop. It is the right widget for
-grouping launchers; Folder View is the right widget for showing a folder.
+name, launches them, and accepts drag-and-drop.
 
-One non-obvious key: set `maxSectionCount` to the number of icon rows you want.
-Without it Quicklaunch flows every launcher into a single row and shrinks the
-icons to fit, so icon size ends up varying from group to group.
+Two non-obvious keys. `maxSectionCount` sets how many icon rows you get —
+without it Quicklaunch flows everything into one row and shrinks the icons to
+fit, so icon size varies from group to group. And Quicklaunch *balances* icons
+across the rows it is given, so six in two rows render 3+3 rather than 4+2: size
+the widget to that balanced column count, or it scales the icons up to fill the
+extra width and every group ends up a slightly different size.
 
-A second, subtler one: Quicklaunch *balances* icons across the rows it is given,
-so six icons in two rows render 3+3 rather than 4+2. Size the widget to that
-balanced column count. Size it to the maximum instead and Quicklaunch scales the
-icons up to fill the extra width, leaving every group a slightly different icon
-size — which reads as sloppy without being obviously wrong.
+</details>
 
-### 2. Plasma's scripting API cannot position widgets
+<details>
+<summary><b>2. Plasma's scripting API cannot position widgets</b></summary>
 
 `desktop.addWidget()` works. Positioning it does not:
 
@@ -252,12 +200,14 @@ plasmashell &
 Also note `evaluateScript` only reliably returns `print()` output — a bare
 trailing expression usually comes back empty.
 
-### 3. `plasma-apply-desktoptheme` can be a silent no-op
+</details>
+
+<details>
+<summary><b>3. <code>plasma-apply-desktoptheme</code> can be a silent no-op</b></summary>
 
 On distros shipping `AutomaticLookAndFeel=true` in `kdeglobals` — Kubuntu among
 them — the look-and-feel package re-asserts its own desktop theme. The command
 reports success, `plasmarc` shows your theme, and Plasma renders something else.
-
 The only signal is a cache mtime:
 
 ```
@@ -271,7 +221,10 @@ Fix: don't introduce a new theme id at all. Copy the active theme into
 dir shadows `/usr/share` — and patch the copy. Do it for the light *and* dark
 variants, or the styling vanishes when the day/night schedule flips.
 
-### 4. Theme caches are keyed by theme name
+</details>
+
+<details>
+<summary><b>4. Theme caches are keyed by theme name</b></summary>
 
 Following from the above: keeping the name means the pixmap cache keeps serving
 the old artwork. Clear it while plasmashell is down.
@@ -280,7 +233,10 @@ the old artwork. Clear it while plasmashell is down.
 rm -f ~/.cache/plasma_theme_*.kcache ~/.cache/ksvg-elements
 ```
 
-### 5. `widgets/background` is the applet frame; `translucent/` is dead
+</details>
+
+<details>
+<summary><b>5. <code>widgets/background</code> is the applet frame; <code>translucent/</code> is dead</b></summary>
 
 There is no opacity setting for widget backgrounds anywhere in Plasma. The frame
 is a theme SVG, selected in `BasicAppletContainer.qml`:
@@ -298,11 +254,11 @@ To make the frame transparent, add an `opacity` attribute to the nine `<g>`
 elements `center`, `top`, `bottom`, `left`, `right` and the four corners.
 Ancestor opacity is not applied when Qt renders an SVG by element id, so setting
 it on the root `<svg>` does not work either. Leave the `shadow-*` elements alone
-so panels still read against a busy wallpaper.
-
-Most distro themes are sparse — Kubuntu's are 20K of colours — and fall back to
-`default` for artwork, so the file to copy and patch is usually
+so panels still read against a busy wallpaper. Most distro themes are sparse and
+fall back to `default` for artwork, so the file to copy and patch is usually
 `/usr/share/plasma/desktoptheme/default/widgets/background.svgz`.
+
+</details>
 
 ## Caveats
 
@@ -314,14 +270,12 @@ Most distro themes are sparse — Kubuntu's are 20K of colours — and fall back
 internals are not a stable interface. A Plasma point release can change the
 format; if panels land in the wrong place after an update, check that first.
 
-**Groups hold application launchers, not files.** Quicklaunch is a launcher
-widget; if you want a group that holds documents or folders, that is Folder
-View's job, with the caveats in gotcha #1.
+**Groups hold application launchers, not files.** If you want a group of
+documents or folders, that is Folder View's job, with the caveats in gotcha #1.
 
 **`translucency` shadows system themes.** While the shadow copies exist, distro
 updates to those themes stop reaching you. That is why it is a separate command
-from the groups — skip it if the trade is not worth it. `translucency reset`
-removes the copies.
+from the groups — skip it if the trade is not worth it.
 
 **`apply` rewrites, it does not merge.** It removes the widgets it created
 previously (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from
@@ -329,12 +283,12 @@ the config. Widgets you placed by hand are left alone, but not moved out of the
 way either. Launchers you add by dragging onto a group live in that widget's
 config, so `apply` will discard them — add them to the TOML instead.
 
-**Every `apply` backs up your desktop layout first.** `ItemGeometries` lives in
-`plasma-org.kde.plasma.desktop-appletsrc`, alongside every panel, widget and
-wallpaper setting you have, so the file is copied into
-`~/.local/state/paddocks/backups/` before it is touched. The last five are kept.
-Restoring one is a copy back, with plasmashell stopped — the same reason the
-write itself needs it:
+**Every `apply` backs up your desktop layout first.**
+`plasma-org.kde.plasma.desktop-appletsrc` holds every panel, widget and
+wallpaper setting you have, so it is copied into
+`~/.local/state/paddocks/backups/` before `ItemGeometries` is touched; the last
+five are kept. Restoring is a copy back, with plasmashell stopped for the same
+reason the write needs it:
 
 ```
 kquitapp6 plasmashell
@@ -343,10 +297,10 @@ cp ~/.local/state/paddocks/backups/plasma-org.kde.plasma.desktop-appletsrc.<stam
 plasmashell &
 ```
 
-**Do not `resolve()` launcher paths.** Flatpak's `exports/share/applications`
-is a symlink farm into content-addressed store paths. Following those symlinks
-bakes a commit hash into the URL, and every flatpak launcher breaks on the next
-update of that app. Use the export path as-is.
+**Do not `resolve()` launcher paths.** Flatpak's `exports/share/applications` is
+a symlink farm into content-addressed store paths. Following those symlinks bakes
+a commit hash into the URL, and every flatpak launcher breaks on the next update
+of that app. Use the export path as-is.
 
 ## Contributing
 
