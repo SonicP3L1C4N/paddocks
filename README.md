@@ -308,6 +308,16 @@ Reports from other distros are the most useful thing — particularly whether
 `AutomaticLookAndFeel` behaves the same way, and whether the layout constants in
 `paddocks/layout.py` hold at other icon sizes and scale factors.
 
+```
+python3 -m unittest discover -s tests -t .
+```
+
+Standard library only, so there is nothing to install. The tests never touch
+your real config, your state file or a running plasmashell — the plasma module
+is replaced wholesale in the tests that need it, rather than patched function
+by function, so a missed attribute cannot take your desktop down. The editor
+tests skip themselves if PyQt6 is absent.
+
 ## Trademarks
 
 Paddocks is an independent project, not affiliated with, endorsed by, or derived

@@ -112,15 +112,22 @@ def _warnings(groups: list[Group]) -> list[str]:
     for group in groups:
         if not group.apps:
             problems.append(f"{group.name} lists no apps and will be an empty box")
+        # Tracked per group as we go: deriving it afterwards from the owner
+        # list cannot tell you which group the repeat was actually in.
+        seen_here: set[str] = set()
+        reported: set[str] = set()
         for app_id in group.apps:
+            if app_id in seen_here and app_id not in reported:
+                problems.append(f"{app_id} is listed twice in {group.name}")
+                reported.add(app_id)
+            seen_here.add(app_id)
             owners.setdefault(app_id, []).append(group.name)
 
     for app_id, names in owners.items():
-        if len(names) > len(set(names)):
-            problems.append(f"{app_id} is listed twice in {names[0]}")
-        elif len(names) > 1:
-            problems.append(f"{app_id} appears in {len(names)} groups: "
-                            + ", ".join(names))
+        unique = list(dict.fromkeys(names))
+        if len(unique) > 1:
+            problems.append(f"{app_id} appears in {len(unique)} groups: "
+                            + ", ".join(unique))
     return problems
 
 
