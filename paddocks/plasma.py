@@ -85,8 +85,28 @@ def run_script(js: str, check: bool = True) -> str:
 
 
 def is_running() -> bool:
-    return subprocess.run(["pgrep", "-x", "plasmashell"],
-                          capture_output=True).returncode == 0
+    """Whether there is a plasmashell in *this* session to script.
+
+    Asked of the session bus rather than of pgrep, which answers a subtly
+    different question: it matches every user's plasmashell on a shared
+    machine, and inside a sandbox it cannot see host processes at all and so
+    reports no shell while one is plainly running. Bus name ownership is the
+    thing `write_item_geometries` actually needs to know before it writes.
+
+    Failure to ask is an error rather than a False, because a False here is
+    what lets that write go ahead.
+    """
+    proc = subprocess.run(
+        [_qdbus(), "org.freedesktop.DBus", "/org/freedesktop/DBus",
+         "org.freedesktop.DBus.NameHasOwner", "org.kde.plasmashell"],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        raise PlasmaError(
+            f"could not ask the session bus about plasmashell: "
+            f"{proc.stderr.strip()}"
+        )
+    return proc.stdout.strip() == "true"
 
 
 def stop() -> None:
