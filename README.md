@@ -92,6 +92,23 @@ in the GUI; mixing the two costs you your comments.
 The editor needs PyQt6 (`sudo apt install python3-pyqt6`). Everything else
 works without it.
 
+### In the application menu
+
+```
+paddocks install-desktop          # menu entry + icons, matching your theme
+paddocks install-desktop --remove # take them out again
+```
+
+This writes `paddocks.desktop` into `~/.local/share/applications` and the icon
+into `~/.local/share/icons/hicolor`, so Paddocks appears in the launcher and
+the taskbar shows its own icon rather than a generic one. The icon ships in
+dark and light variants; the one matching your current colour scheme is
+installed unless you pass `--variant dark` or `--variant light`.
+
+The `.desktop` file is generated rather than checked in, because `Exec=` has to
+carry the absolute path of wherever you cloned this. Move the clone and run
+`install-desktop` again.
+
 ### App ids
 
 Ids do not have to be the exact `.desktop` filename. The same application is
@@ -139,6 +156,7 @@ No packaging yet — clone and symlink the entry point onto your PATH.
 ```
 git clone https://github.com/SonicP3L1C4N/paddocks.git
 ln -s "$PWD/paddocks/bin/paddocks" ~/.local/bin/paddocks
+paddocks install-desktop        # optional: menu entry and icon
 ```
 
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and

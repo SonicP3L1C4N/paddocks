@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 from PyQt6.QtCore import QSize, Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QIcon
+from PyQt6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPalette
 from PyQt6.QtWidgets import (
     QAbstractItemView, QApplication, QComboBox, QDialog, QDialogButtonBox,
     QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem,
@@ -26,7 +26,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
-from . import apps, groups
+from . import apps, desktop, groups
 from .layout import ALIGNMENTS, ARRANGEMENTS, Metrics
 
 ROLE = Qt.ItemDataRole.UserRole
@@ -36,9 +36,43 @@ MISSING_COLOUR = QColor(200, 60, 60)
 def run(config_path: Path) -> int:
     app = QApplication(sys.argv[:1])
     app.setApplicationName("Paddocks")
+    # Only claimed once the menu entry exists: without a matching .desktop file
+    # the portal rejects the id and Qt logs a warning on every start.
+    if desktop.installed_entry() is not None:
+        app.setDesktopFileName(desktop.ICON_NAME)
+    app.setWindowIcon(paddocks_icon())
     window = Editor(config_path)
     window.show()
     return app.exec()
+
+
+def paddocks_icon() -> QIcon:
+    """The app icon, in whichever variant suits the current colour scheme."""
+    icon = QIcon()
+    variant = _colour_scheme()
+    for size in desktop.SIZES:
+        png = desktop.ICON_SOURCE / f"{desktop.ICON_NAME}-{variant}-{size}.png"
+        if png.exists():
+            icon.addFile(str(png), QSize(size, size))
+    svg = desktop.ICON_SOURCE / f"{desktop.ICON_NAME}-{variant}.svg"
+    if icon.isNull() and svg.exists():
+        icon.addFile(str(svg))
+    return icon if not icon.isNull() else QIcon.fromTheme(desktop.ICON_NAME)
+
+
+def _colour_scheme() -> str:
+    """Qt knows the scheme directly; fall back to the palette, then kdeglobals."""
+    hints = QGuiApplication.styleHints()
+    scheme = hints.colorScheme() if hasattr(hints, "colorScheme") else None
+    if scheme == Qt.ColorScheme.Dark:
+        return "dark"
+    if scheme == Qt.ColorScheme.Light:
+        return "light"
+    palette = QGuiApplication.palette()
+    if palette is not None:
+        window = palette.color(QPalette.ColorRole.Window)
+        return "dark" if window.lightness() < 128 else "light"
+    return desktop.preferred_variant()
 
 
 def app_icon(entry: apps.Entry | None) -> QIcon:
@@ -97,7 +131,7 @@ class Editor(QMainWindow):
         self.worker: Worker | None = None
 
         self.setWindowTitle("Paddocks")
-        self.setWindowIcon(QIcon.fromTheme("preferences-desktop-theme"))
+        self.setWindowIcon(paddocks_icon())
         self.resize(1080, 620)
         self._build()
         self._load()

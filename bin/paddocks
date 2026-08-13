@@ -10,7 +10,7 @@ from pathlib import Path
 # The package sits alongside bin/, not inside it.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from paddocks import groups, plasma, translucency  # noqa: E402
+from paddocks import desktop, groups, plasma, translucency  # noqa: E402
 
 DEFAULT_CONFIG = Path.home() / ".config" / "paddocks.toml"
 
@@ -29,6 +29,13 @@ def main() -> int:
 
     p_edit = sub.add_parser("edit", help="open the config editor (Qt GUI)")
     p_edit.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
+
+    p_install = sub.add_parser("install-desktop",
+                               help="add Paddocks to the application menu")
+    p_install.add_argument("--variant", choices=desktop.VARIANTS,
+                           help="icon variant (default: match your colour scheme)")
+    p_install.add_argument("--remove", action="store_true",
+                           help="remove the menu entry and icons again")
 
     sub.add_parser("remove", help="remove groups created by apply")
 
@@ -79,6 +86,20 @@ def dispatch(args) -> int:
                 "`sudo apt install python3-pyqt6`, or edit the TOML by hand."
             ) from None
         return gui.run(args.config)
+
+    if args.command == "install-desktop":
+        if args.remove:
+            removed = desktop.uninstall()
+            print(f"Removed {len(removed)} file(s)" if removed
+                  else "Nothing was installed.")
+            return 0
+        written = desktop.install(args.variant)
+        variant = args.variant or desktop.preferred_variant()
+        print(f"Installed the {variant} icon and a menu entry "
+              f"({len(written)} files):")
+        print(f"  {written[-1]}")
+        print("Paddocks should appear in the application launcher shortly.")
+        return 0
 
     if args.command == "remove":
         groups.remove()
