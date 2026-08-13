@@ -15,7 +15,7 @@ from .layout import ALIGNMENTS, ARRANGEMENTS, Metrics, solve
 STATE_FILE = plasma.STATE_DIR / "state.json"
 
 TOP_LEVEL_KEYS = {"settings", "group"}
-SETTINGS_KEYS = set(Metrics.__dataclass_fields__) | {"arrangement"}
+SETTINGS_KEYS = set(Metrics.__dataclass_fields__) | {"arrangement", "strict"}
 GROUP_KEYS = {"name", "apps"}
 
 
@@ -30,6 +30,7 @@ class Config:
     groups: list[Group]
     metrics: Metrics = field(default_factory=Metrics)
     arrangement: str = "row"
+    strict: bool = False
     warnings: list[str] = field(default_factory=list)
 
 
@@ -54,6 +55,12 @@ def load_config(path: Path) -> Config:
     arrangement = settings.get("arrangement", "row")
     _reject_choice(arrangement, ARRANGEMENTS, "arrangement", path)
 
+    strict = settings.get("strict", False)
+    if not isinstance(strict, bool):
+        raise ConfigError(
+            f"{path}: strict = {strict!r} must be true or false"
+        )
+
     metrics = Metrics(**{k: _check_metric(k, v, path)
                          for k, v in settings.items()
                          if k in Metrics.__dataclass_fields__})
@@ -68,7 +75,7 @@ def load_config(path: Path) -> Config:
         )
 
     return Config(groups=groups, metrics=metrics, arrangement=arrangement,
-                  warnings=_warnings(groups))
+                  strict=strict, warnings=_warnings(groups))
 
 
 def _load_group(raw: dict, position: int, path: Path) -> Group:
@@ -190,7 +197,19 @@ def _record(state: dict, names: list[str], ids: list[int]) -> None:
     write_state(state)
 
 
-def apply(cfg: Config, dry_run: bool = False, strict: bool = False) -> None:
+def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> None:
+    """Build the groups. `strict` of None defers to the config's setting.
+
+    The command line wins when it says anything at all, so `--no-strict` is a
+    way past a config that has it on, and the failure message names which of
+    the two turned it on -- a config setting is not visible in the command the
+    user just typed.
+    """
+    if strict is None:
+        strict, why = cfg.strict, "strict = true is set in the config"
+    else:
+        why = "--strict was given" if strict else ""
+
     for warning in cfg.warnings:
         print(f"warning: {warning}")
 
@@ -222,7 +241,7 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool = False) -> None:
     # existing groups exactly as they were.
     if strict and misses:
         raise ValueError(
-            f"{len(misses)} launcher(s) did not resolve and --strict is set; "
+            f"{len(misses)} launcher(s) did not resolve and {why}; "
             "nothing was changed"
         )
 

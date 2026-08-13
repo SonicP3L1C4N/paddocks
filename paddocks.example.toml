@@ -15,6 +15,12 @@ arrangement = "row"
 # left   - rows start at the left margin, groups aligned to the top
 align = "center"
 
+# Refuse to build rather than quietly dropping an app whose launcher no longer
+# resolves -- worth having if any of your entries are hand-written .desktop
+# files, which break silently when what they point at moves. `--no-strict`
+# gets past it for one run.
+# strict = true
+
 # Layout tuning. Defaults measured against Plasma 6.6. max_columns caps how
 # wide a group gets before it wraps to a second icon row.
 # cell = 140

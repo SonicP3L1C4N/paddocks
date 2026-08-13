@@ -107,7 +107,7 @@ nearest ids instead of just failing:
 | | |
 |---|---|
 | `paddocks discover` | starter config from installed apps — `--desktop-only`, `--all` |
-| `paddocks apply` | build the groups — `--dry-run`, `--strict` |
+| `paddocks apply` | build the groups — `--dry-run`, `--strict`, `--no-strict` |
 | `paddocks edit` | the editor window |
 | `paddocks status` | what is currently set up |
 | `paddocks remove` | take the groups away again |
@@ -116,6 +116,10 @@ nearest ids instead of just failing:
 
 `--strict` turns a launcher that does not resolve into an error that changes
 nothing, for once a config is settled or when driving `apply` from a script.
+Put `strict = true` under `[settings]` to have it on every time; `--no-strict`
+gets past it for a single run. It earns its keep if any of your entries are
+hand-written `.desktop` files, which stop resolving the moment whatever they
+point at moves, and take the app quietly out of its group when they do.
 
 `install-desktop` writes `paddocks.desktop` into `~/.local/share/applications`
 and the icon into `~/.local/share/icons/hicolor`. The entry is generated rather

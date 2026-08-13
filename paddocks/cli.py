@@ -17,7 +17,7 @@ from . import desktop, groups, plasma, translucency
 DEFAULT_CONFIG = Path.home() / ".config" / "paddocks.toml"
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="paddocks", description="Desktop groups for KDE Plasma 6.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -26,9 +26,14 @@ def main() -> int:
     p_apply.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
     p_apply.add_argument("-n", "--dry-run", action="store_true",
                          help="print the computed layout and stop")
-    p_apply.add_argument("-s", "--strict", action="store_true",
+    # default=None rather than False so that the config's `strict` setting can
+    # tell the difference between "not asked for" and "asked not to".
+    p_apply.add_argument("-s", "--strict", action="store_true", default=None,
                          help="fail instead of building groups with launchers "
                               "missing (e.g. after an app is uninstalled)")
+    p_apply.add_argument("--no-strict", action="store_false", dest="strict",
+                         help="build anyway, overriding strict = true in the "
+                              "config")
 
     p_edit = sub.add_parser("edit", help="open the config editor (Qt GUI)")
     p_edit.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
@@ -59,7 +64,11 @@ def main() -> int:
 
     sub.add_parser("status", help="show what is currently set up")
 
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
 
     try:
         return dispatch(args)

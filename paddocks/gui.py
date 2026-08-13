@@ -98,7 +98,12 @@ class Worker(QThread):
         out = io.StringIO()
         try:
             with contextlib.redirect_stdout(out):
-                groups.apply(self.config, dry_run=self.dry_run)
+                # Explicitly not strict, whatever the config says. Strict
+                # exists to stop an unresolved id being dropped without anyone
+                # noticing; here the editor has already shown it in red, and
+                # refusing to apply would leave no way to rebuild the desktop
+                # short of deleting an entry the user may want to keep.
+                groups.apply(self.config, dry_run=self.dry_run, strict=False)
         except Exception as exc:  # surfaced in the output dialog
             self.done.emit(False, f"{out.getvalue()}\nerror: {exc}")
             return
