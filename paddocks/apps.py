@@ -52,7 +52,7 @@ NOISY_GROUPS = {"System", "Settings"}
 
 OTHER_GROUP = "Other"
 
-_WANTED_KEYS = ("Name", "Categories", "NoDisplay", "Hidden", "Type",
+_WANTED_KEYS = ("Name", "Icon", "Categories", "NoDisplay", "Hidden", "Type",
                 "OnlyShowIn", "NotShowIn")
 
 
@@ -61,6 +61,7 @@ class Entry:
     app_id: str
     path: Path
     name: str
+    icon: str
     categories: tuple[str, ...]
     visible: bool
 
@@ -189,6 +190,7 @@ def _read_entry(path: Path) -> Entry | None:
         app_id=path.stem,
         path=path,
         name=data.get("Name", "").strip(),
+        icon=data.get("Icon", "").strip(),
         categories=categories,
         visible=_is_visible(data),
     )

@@ -37,6 +37,14 @@ paddocks apply --dry-run                      # check the computed layout
 paddocks apply
 ```
 
+Or skip all of that and do it in one window — the editor lists every installed
+application to pick from, so there is nothing to discover, and applies from the
+same window:
+
+```
+paddocks edit
+```
+
 `discover` reads every installed `.desktop` file and buckets it by the
 `Categories=` field, which is roughly the grouping the application menu already
 shows, and annotates each id with the application name so the config is
@@ -55,6 +63,34 @@ apps = [
 That is deliberately more than fits on a screen — it is a list to delete from.
 `--desktop-only` narrows it to apps that already have a launcher in `~/Desktop`,
 and `--all` adds the System and Settings entries that are otherwise left out.
+
+## The editor
+
+`paddocks edit` opens a Qt window over the same config, for when hand-editing
+TOML is not the point.
+
+![The editor: groups, group contents, and the installed application list](docs/editor.png)
+
+Groups on the left, the selected group's applications in the middle, every
+installed application on the right. Drag within either list to reorder, drag a
+group up or down to change where it lands on screen, and double-click an
+application to add or remove it. **Preview** shows the computed layout without
+touching anything; **Save & Apply** writes the config and rebuilds the desktop.
+
+An id in your config that no longer resolves is shown in red and kept, rather
+than quietly dropped on the next save — the application may just be
+temporarily uninstalled. Applications whose `Name=` is ambiguous (two packagings
+of Discord, say) have their id spelled out next to them.
+
+Saving rewrites the file in a canonical form: settings that differ from the
+defaults, then the groups in order, each id annotated with its application
+name. **Comments you wrote by hand do not survive that.** Python has no TOML
+writer in its standard library and the round-trip libraries that preserve
+comments are a dependency the rest of this does not need. Edit by hand or edit
+in the GUI; mixing the two costs you your comments.
+
+The editor needs PyQt6 (`sudo apt install python3-pyqt6`). Everything else
+works without it.
 
 ### App ids
 
@@ -107,6 +143,8 @@ ln -s "$PWD/paddocks/bin/paddocks" ~/.local/bin/paddocks
 
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 `qdbus6` / `kwriteconfig6` / `kquitapp6`, all standard on a Plasma install.
+`paddocks edit` additionally needs PyQt6 (`python3-pyqt6`); the command line
+has no third-party dependencies at all.
 
 ## What it does and does not cover
 

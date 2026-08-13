@@ -27,6 +27,9 @@ def main() -> int:
                          help="fail instead of building groups with launchers "
                               "missing (e.g. after an app is uninstalled)")
 
+    p_edit = sub.add_parser("edit", help="open the config editor (Qt GUI)")
+    p_edit.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
+
     sub.add_parser("remove", help="remove groups created by apply")
 
     p_discover = sub.add_parser(
@@ -65,6 +68,17 @@ def dispatch(args) -> int:
         groups.apply(groups.load_config(args.config),
                      dry_run=args.dry_run, strict=args.strict)
         return 0
+
+    if args.command == "edit":
+        # Imported here so the rest of the tool works without PyQt6 installed.
+        try:
+            from paddocks import gui
+        except ImportError as exc:
+            raise RuntimeError(
+                f"the editor needs PyQt6 ({exc}). Install it with "
+                "`sudo apt install python3-pyqt6`, or edit the TOML by hand."
+            ) from None
+        return gui.run(args.config)
 
     if args.command == "remove":
         groups.remove()
