@@ -14,10 +14,42 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
-ICON_SOURCE = Path(__file__).resolve().parent.parent / "icons"
-ENTRY_POINT = Path(__file__).resolve().parent.parent / "bin" / "paddocks"
+
+def _icon_source() -> Path:
+    """Where the icon set lives.
+
+    A wheel carries it inside the package; a checkout keeps it at the repo
+    root, where the README can reference it.
+    """
+    packaged = Path(__file__).resolve().parent / "icons"
+    if packaged.is_dir():
+        return packaged
+    return Path(__file__).resolve().parent.parent / "icons"
+
+
+def _entry_point() -> Path | None:
+    """What ``Exec=`` should run.
+
+    A checkout runs bin/paddocks; an installed copy has no bin/ beside the
+    package and uses the console script instead. ``which`` is preferred over
+    the venv's own bin/ because it finds the symlink on PATH, which is the
+    path that stays valid if the venv is ever rebuilt underneath it.
+    """
+    checkout = Path(__file__).resolve().parent.parent / "bin" / "paddocks"
+    if checkout.exists():
+        return checkout
+    found = shutil.which("paddocks")
+    if found:
+        return Path(found)
+    installed = Path(sys.prefix) / "bin" / "paddocks"
+    return installed if installed.exists() else None
+
+
+ICON_SOURCE = _icon_source()
+ENTRY_POINT = _entry_point()
 
 DATA_HOME = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
 APPLICATIONS = DATA_HOME / "applications"
@@ -72,8 +104,11 @@ def install(variant: str | None = None) -> list[Path]:
     variant = variant or preferred_variant()
     if variant not in VARIANTS:
         raise ValueError(f"unknown icon variant {variant!r}; use dark or light")
-    if not ENTRY_POINT.exists():
-        raise FileNotFoundError(f"cannot find the paddocks entry point at {ENTRY_POINT}")
+    if ENTRY_POINT is None:
+        raise FileNotFoundError(
+            "cannot find the paddocks entry point: no bin/paddocks beside the "
+            "package, and no `paddocks` on PATH"
+        )
 
     written: list[Path] = []
     for size in SIZES:

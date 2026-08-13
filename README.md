@@ -18,18 +18,26 @@ otherwise cost an afternoon each.
 
 ## Install
 
-No packaging yet — clone and symlink the entry point onto your PATH.
+```
+pipx install "paddocks[gui] @ git+https://github.com/SonicP3L1C4N/paddocks.git"
+paddocks install-desktop        # optional: menu entry and icon
+```
+
+Or clone and symlink the entry point onto your PATH, which needs no installer
+and picks up edits immediately:
 
 ```
 git clone https://github.com/SonicP3L1C4N/paddocks.git
 ln -s "$PWD/paddocks/bin/paddocks" ~/.local/bin/paddocks
-paddocks install-desktop        # optional: menu entry and icon
 ```
 
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 `qdbus6` / `kwriteconfig6` / `kquitapp6`, all standard on a Plasma install.
-`paddocks edit` additionally needs PyQt6 (`python3-pyqt6`); the command line has
-no third-party dependencies at all.
+The command line has no third-party dependencies at all; only `paddocks edit`
+needs PyQt6, which is what the `[gui]` extra above pulls in. A distro package
+(`sudo apt install python3-pyqt6`) works too, and is the one a checkout uses —
+drop the extra and install it system-wide if you would rather not have a second
+copy of Qt in a venv.
 
 ## Use
 

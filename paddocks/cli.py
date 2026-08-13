@@ -1,0 +1,157 @@
+"""The `paddocks` command line.
+
+Lives in the package rather than in bin/ so that an installed copy can expose
+it as a console script; bin/paddocks is a shim over this for people running
+straight from a checkout.
+"""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+from . import desktop, groups, plasma, translucency
+
+DEFAULT_CONFIG = Path.home() / ".config" / "paddocks.toml"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="paddocks", description="Desktop groups for KDE Plasma 6.")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_apply = sub.add_parser("apply", help="create/refresh groups from a config")
+    p_apply.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
+    p_apply.add_argument("-n", "--dry-run", action="store_true",
+                         help="print the computed layout and stop")
+    p_apply.add_argument("-s", "--strict", action="store_true",
+                         help="fail instead of building groups with launchers "
+                              "missing (e.g. after an app is uninstalled)")
+
+    p_edit = sub.add_parser("edit", help="open the config editor (Qt GUI)")
+    p_edit.add_argument("-c", "--config", type=Path, default=DEFAULT_CONFIG)
+
+    p_install = sub.add_parser("install-desktop",
+                               help="add Paddocks to the application menu")
+    p_install.add_argument("--variant", choices=desktop.VARIANTS,
+                           help="icon variant (default: match your colour scheme)")
+    p_install.add_argument("--remove", action="store_true",
+                           help="remove the menu entry and icons again")
+
+    sub.add_parser("remove", help="remove groups created by apply")
+
+    p_discover = sub.add_parser(
+        "discover", help="emit a starter config from your installed apps")
+    p_discover.add_argument("--desktop-only", action="store_true",
+                            help="only include apps that already have a "
+                                 "launcher in --desktop-dir")
+    p_discover.add_argument("--desktop-dir", type=Path,
+                            default=Path.home() / "Desktop",
+                            help="where --desktop-only looks (default ~/Desktop)")
+    p_discover.add_argument("--all", action="store_true", dest="include_all",
+                            help="include System and Settings entries too")
+
+    p_trans = sub.add_parser("translucency", help="widget background opacity")
+    p_trans.add_argument("value", nargs="?",
+                         help="opacity 0-1 (e.g. 0.4), or 'reset'")
+
+    sub.add_parser("status", help="show what is currently set up")
+
+    args = parser.parse_args()
+
+    try:
+        return dispatch(args)
+    except (plasma.PlasmaError, ValueError, RuntimeError, OSError,
+            subprocess.SubprocessError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def dispatch(args) -> int:
+    if args.command == "apply":
+        if not args.config.exists():
+            raise FileNotFoundError(
+                f"{args.config} not found. Run `paddocks discover > {args.config}` "
+                "and edit it into groups first."
+            )
+        groups.apply(groups.load_config(args.config),
+                     dry_run=args.dry_run, strict=args.strict)
+        return 0
+
+    if args.command == "edit":
+        # Imported here so the rest of the tool works without PyQt6 installed.
+        try:
+            from . import gui
+        except ImportError as exc:
+            raise RuntimeError(
+                f"the editor needs PyQt6 ({exc}). Reinstall with the extra "
+                "(`pipx install 'paddocks[gui]'`), install it system-wide "
+                "(`sudo apt install python3-pyqt6`), or edit the TOML by hand."
+            ) from None
+        return gui.run(args.config)
+
+    if args.command == "install-desktop":
+        if args.remove:
+            removed = desktop.uninstall()
+            print(f"Removed {len(removed)} file(s)" if removed
+                  else "Nothing was installed.")
+            return 0
+        written = desktop.install(args.variant)
+        variant = args.variant or desktop.preferred_variant()
+        print(f"Installed the {variant} icon and a menu entry "
+              f"({len(written)} files):")
+        print(f"  {written[-1]}")
+        print("Paddocks should appear in the application launcher shortly.")
+        return 0
+
+    if args.command == "remove":
+        groups.remove()
+        return 0
+
+    if args.command == "discover":
+        sys.stdout.write(groups.discover(
+            args.desktop_dir if args.desktop_only else None,
+            include_all=args.include_all,
+        ))
+        return 0
+
+    if args.command == "translucency":
+        if args.value is None:
+            print("Active themes:", ", ".join(translucency.active_themes()) or "none")
+            return 0
+        if args.value == "reset":
+            removed = translucency.reset()
+            print("Restored:", ", ".join(removed) or "nothing to restore")
+            return 0
+        try:
+            opacity = float(args.value)
+        except ValueError:
+            raise ValueError(
+                f"{args.value!r} is not an opacity; give a number between 0 "
+                "and 1 (e.g. 0.4), or 'reset'"
+            ) from None
+        touched = translucency.apply(opacity)
+        print(f"Patched at opacity {opacity}:", ", ".join(touched))
+        return 0
+
+    if args.command == "status":
+        state = groups.read_state()
+        if not state.get("widgets"):
+            print("No groups currently created.")
+        else:
+            print(f"Containment {state.get('containment', '?')} "
+                  f"@ {state.get('resolution', '?')}")
+            for widget in state["widgets"]:
+                print(f"  {widget['name']:<20} applet {widget['id']}")
+        print("Themes shadowed:",
+              ", ".join(t for t in translucency.active_themes()
+                        if (translucency.USER_THEMES / t).exists()) or "none")
+        return 0
+
+    raise ValueError(f"unknown command {args.command}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
