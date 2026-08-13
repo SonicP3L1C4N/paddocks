@@ -29,6 +29,8 @@ APPLETSRC = CONFIG_DIR / "plasma-org.kde.plasma.desktop-appletsrc"
 BACKUP_DIR = STATE_DIR / "backups"
 KEEP_BACKUPS = 5
 
+PLASMA_UNIT = "plasma-plasmashell.service"
+
 
 class PlasmaError(RuntimeError):
     pass
@@ -88,6 +90,14 @@ def is_running() -> bool:
 
 
 def stop() -> None:
+    """Quit plasmashell, wherever it happens to live.
+
+    kquitapp rather than ``systemctl stop`` because the running shell is not
+    necessarily in ``plasma-plasmashell.service`` -- an earlier version of
+    Paddocks orphaned it into the launching app's transient unit, and this
+    quits it either way. The unit's ``Restart=on-failure`` does not fire on a
+    clean exit, so `start` is left to put it back.
+    """
     if not is_running():
         return
     quit_cmd = shutil.which("kquitapp6") or shutil.which("kquitapp")
@@ -101,7 +111,47 @@ def stop() -> None:
     raise PlasmaError("plasmashell did not exit")
 
 
+def unit_is_known() -> bool:
+    """Whether this session has a systemd unit for plasmashell.
+
+    ``systemctl --user cat`` exits non-zero when there is no such unit, which
+    covers both a session without a systemd user manager and a Plasma started
+    by some other means.
+    """
+    systemctl = shutil.which("systemctl")
+    if not systemctl:
+        return False
+    return subprocess.run(
+        [systemctl, "--user", "cat", PLASMA_UNIT],
+        capture_output=True,
+    ).returncode == 0
+
+
 def start() -> None:
+    """Bring plasmashell back up.
+
+    Asking systemd rather than spawning the binary is not a tidiness
+    preference. A child process inherits our cgroup -- ``start_new_session``
+    changes the session id, not the unit -- so a plasmashell spawned from here
+    lands in whatever transient ``app-*.service`` the desktop made to launch
+    *Paddocks*. Those units are ``KillMode=control-group``, so the shell then
+    dies with the terminal or menu entry that started us, and meanwhile
+    ``plasma-plasmashell.service`` sits inactive and no longer describes the
+    running desktop.
+    """
+    if unit_is_known():
+        systemctl = shutil.which("systemctl")
+        # The unit is Type=dbus, so systemd returns once plasmashell has taken
+        # org.kde.plasmashell and there is nothing left for us to poll for.
+        proc = subprocess.run(
+            [systemctl, "--user", "start", PLASMA_UNIT],
+            capture_output=True, text=True,
+        )
+        if proc.returncode == 0:
+            return
+        # Fall through rather than raise: a masked or otherwise broken unit
+        # should leave the user with a desktop, not without one.
+
     subprocess.Popen(
         ["plasmashell"], start_new_session=True,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
