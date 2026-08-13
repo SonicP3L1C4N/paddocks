@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -60,7 +61,8 @@ def main() -> int:
 
     try:
         return dispatch(args)
-    except (plasma.PlasmaError, ValueError, RuntimeError, FileNotFoundError) as exc:
+    except (plasma.PlasmaError, ValueError, RuntimeError, OSError,
+            subprocess.SubprocessError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

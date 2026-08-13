@@ -67,10 +67,25 @@ def active_themes() -> list[str]:
 
     seen, result = set(), []
     for name in names:
-        if name and name not in seen and _system_theme_dir(name):
+        if _is_safe_name(name) and name not in seen and _system_theme_dir(name):
             seen.add(name)
             result.append(name)
     return result
+
+
+def _is_safe_name(name: str) -> bool:
+    """A theme id names one directory; it is not a path.
+
+    Worth enforcing rather than assuming. These names arrive from plasmarc and
+    from look-and-feel packages, and look-and-feel packages are routinely
+    installed from the KDE Store -- third-party content with no business
+    steering a copytree or an rmtree out of the theme directory. Without this,
+    a name of ``../../../../../../tmp/x`` passes the is_dir() check below
+    (because the traversal resolves to somewhere that does exist) and
+    ``reset()`` deletes whatever it lands on.
+    """
+    return bool(name) and name not in (".", "..") \
+        and not any(c in name for c in ("/", "\\", "\0"))
 
 
 def _themes_from_lookandfeel(package: str) -> list[str]:
@@ -86,6 +101,8 @@ def _themes_from_lookandfeel(package: str) -> list[str]:
 
 
 def _system_theme_dir(name: str) -> Path | None:
+    if not _is_safe_name(name):
+        return None
     for base in SYSTEM_THEME_DIRS:
         if (base / name).is_dir():
             return base / name
@@ -178,5 +195,8 @@ def _reload(restart: bool) -> None:
     if not restart:
         return
     plasma.stop()
-    plasma.clear_theme_caches()
-    plasma.start()
+    # Whatever goes wrong in between, the user gets their desktop shell back.
+    try:
+        plasma.clear_theme_caches()
+    finally:
+        plasma.start()

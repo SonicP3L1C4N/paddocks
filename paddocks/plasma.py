@@ -240,12 +240,19 @@ def write_item_geometries(containment: int, resolution: str, geometry: str) -> N
     if is_running():
         raise PlasmaError("refusing to write geometry while plasmashell is running")
     for key in (f"ItemGeometries-{resolution}", "ItemGeometriesHorizontal"):
-        subprocess.run(
+        proc = subprocess.run(
             [_kwriteconfig(), "--file", APPLETSRC.name,
              "--group", "Containments", "--group", str(containment),
              "--key", key, geometry],
-            check=True,
+            capture_output=True, text=True,
         )
+        # Raised as PlasmaError rather than left as CalledProcessError, which
+        # is a SubprocessError and so escapes the CLI's handler as a traceback.
+        if proc.returncode != 0:
+            raise PlasmaError(
+                f"kwriteconfig failed writing {key} "
+                f"(exit {proc.returncode}): {proc.stderr.strip()}"
+            )
 
 
 def format_geometries(boxes: list[tuple[int, int, int, int, int]]) -> str:

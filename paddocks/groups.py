@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -252,10 +253,15 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool = False) -> None:
     )
 
     print("Positioning (restarting plasmashell)")
+    backup = None
     plasma.stop()
-    backup = plasma.backup_appletsrc()
-    plasma.write_item_geometries(state["containment"], resolution, geometry)
-    plasma.start()
+    # plasmashell is down for the whole of this. A failure in here used to
+    # leave it down -- no panels, no desktop -- until it was started by hand.
+    try:
+        backup = plasma.backup_appletsrc()
+        plasma.write_item_geometries(state["containment"], resolution, geometry)
+    finally:
+        plasma.start()
 
     print(f"\nDone. {len(ids)} groups placed.")
     if backup:
@@ -363,10 +369,33 @@ def _display_name(app_id: str, index: apps.Index | None) -> str:
     entry, _ = index.resolve(app_id)
     if entry is None or not entry.name or entry.name == app_id:
         return ""
-    return entry.name.replace("\n", " ")
+    # A comment runs to end of line, so anything that ends a line early would
+    # push the rest of the name out into the file as syntax.
+    return re.sub(r"[\x00-\x1f\x7f]", " ", entry.name)
+
+
+_TOML_ESCAPES = {"\\": "\\\\", '"': '\\"', "\b": "\\b", "\t": "\\t",
+                 "\n": "\\n", "\f": "\\f", "\r": "\\r"}
 
 
 def _toml_value(value) -> str:
-    if isinstance(value, str):
-        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
-    return str(value)
+    """Render a value as TOML.
+
+    Control characters have to be escaped, not just quotes and backslashes: a
+    group name with a newline in it otherwise writes a config file that will
+    not parse again on the next read.
+    """
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if not isinstance(value, str):
+        return str(value)
+
+    out = []
+    for char in value:
+        if char in _TOML_ESCAPES:
+            out.append(_TOML_ESCAPES[char])
+        elif char < " " or char == "\x7f":
+            out.append(f"\\u{ord(char):04X}")
+        else:
+            out.append(char)
+    return '"' + "".join(out) + '"'
