@@ -10,6 +10,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+ARRANGEMENTS = ("row", "grid", "column")
+ALIGNMENTS = ("center", "left")
+
 
 @dataclass
 class Metrics:

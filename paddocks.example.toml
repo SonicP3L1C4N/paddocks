@@ -24,8 +24,12 @@ align = "center"
 # top = 48
 
 # Each group becomes one Quicklaunch widget. `apps` are .desktop ids, with or
-# without the extension; they are looked up in the usual application
-# directories plus flatpak and snap export paths.
+# without the extension, looked up in the usual application directories plus
+# the flatpak and snap export paths. The match is forgiving: "firefox" finds
+# firefox_firefox from a snap, "krita" finds org.kde.krita, and an id that
+# matches nothing is reported with the nearest candidates.
+#
+# Group names must be unique -- they are the widget titles.
 
 [[group]]
 name = "Internet"

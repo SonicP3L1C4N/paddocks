@@ -23,11 +23,27 @@ from pathlib import Path
 
 CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "paddocks"
 APPLETSRC = CONFIG_DIR / "plasma-org.kde.plasma.desktop-appletsrc"
+
+BACKUP_DIR = STATE_DIR / "backups"
+KEEP_BACKUPS = 5
 
 
 class PlasmaError(RuntimeError):
     pass
+
+
+class WidgetCreationError(PlasmaError):
+    """Widget creation failed partway. `ids` are the applets that do exist.
+
+    Carrying them out lets the caller record them, so a half-built desktop can
+    still be cleaned up with `paddocks remove` instead of by hand.
+    """
+
+    def __init__(self, message: str, ids: list[int]):
+        super().__init__(message)
+        self.ids = ids
 
 
 def _qdbus() -> str:
@@ -46,8 +62,12 @@ def _kwriteconfig() -> str:
     raise PlasmaError("no kwriteconfig binary found")
 
 
-def run_script(js: str) -> str:
-    """Evaluate JS in plasmashell. Returns whatever the script print()ed."""
+def run_script(js: str, check: bool = True) -> str:
+    """Evaluate JS in plasmashell. Returns whatever the script print()ed.
+
+    `check=False` is for scripts that catch their own errors and print partial
+    results alongside them; the caller then decides what to raise.
+    """
     proc = subprocess.run(
         [_qdbus(), "org.kde.plasmashell", "/PlasmaShell",
          "org.kde.PlasmaShell.evaluateScript", js],
@@ -55,9 +75,10 @@ def run_script(js: str) -> str:
     )
     if proc.returncode != 0:
         raise PlasmaError(f"evaluateScript failed: {proc.stderr.strip()}")
-    for js_error in ("ReferenceError", "TypeError", "SyntaxError", "RangeError"):
-        if js_error in proc.stdout:
-            raise PlasmaError(f"script error: {proc.stdout.strip()}")
+    if check:
+        for js_error in ("ReferenceError", "TypeError", "SyntaxError", "RangeError"):
+            if js_error in proc.stdout:
+                raise PlasmaError(f"script error: {proc.stdout.strip()}")
     return proc.stdout
 
 
@@ -112,8 +133,11 @@ def desktop_containment() -> int:
     return int(out)
 
 
-def add_quicklaunch_widgets(entries: list[tuple[str, list[str]]]) -> dict[str, int]:
-    """Create one Quicklaunch widget per (title, launcher urls).
+def add_quicklaunch_widgets(entries: list[tuple[str, list[str], int]]) -> list[int]:
+    """Create one Quicklaunch widget per (title, launcher urls, rows).
+
+    Returns the applet ids in the order given -- by position, not by title, so
+    that two groups sharing a name cannot quietly lose one of them.
 
     Quicklaunch stores ``file://`` URLs pointing straight at the installed
     ``.desktop`` files and renders them by application name. Folder View was
@@ -123,32 +147,47 @@ def add_quicklaunch_widgets(entries: list[tuple[str, list[str]]]) -> dict[str, i
     never notices files being added. See the README.
     """
     payload = json.dumps([{"title": t, "urls": u, "rows": r} for t, u, r in entries])
+    # The script catches its own errors so that the ids created before the
+    # failure still come back and can be recorded by the caller.
     out = run_script(f"""
         var entries = {payload};
         var d = desktops()[0];
         var out = [];
-        for (var i = 0; i < entries.length; i++) {{
-            var w = d.addWidget("org.kde.plasma.quicklaunch");
-            w.currentConfigGroup = ["General"];
-            w.writeConfig("launcherUrls", entries[i].urls);
-            w.writeConfig("title", entries[i].title);
-            w.writeConfig("showLauncherNames", true);
-            w.writeConfig("enablePopup", false);
-            // Without this Quicklaunch flows everything into one row and
-            // shrinks the icons to fit, so icon size varies per group.
-            w.writeConfig("maxSectionCount", entries[i].rows);
-            w.reloadConfig();
-            out.push(entries[i].title + "\\t" + w.id);
+        var err = "";
+        try {{
+            for (var i = 0; i < entries.length; i++) {{
+                var w = d.addWidget("org.kde.plasma.quicklaunch");
+                w.currentConfigGroup = ["General"];
+                w.writeConfig("launcherUrls", entries[i].urls);
+                w.writeConfig("title", entries[i].title);
+                w.writeConfig("showLauncherNames", true);
+                w.writeConfig("enablePopup", false);
+                // Without this Quicklaunch flows everything into one row and
+                // shrinks the icons to fit, so icon size varies per group.
+                w.writeConfig("maxSectionCount", entries[i].rows);
+                w.reloadConfig();
+                out.push(w.id);
+            }}
+        }} catch (e) {{
+            err = String(e);
         }}
-        print(out.join("\\n"));
-    """)
-    ids: dict[str, int] = {}
-    for line in out.strip().splitlines():
-        title, _, wid = line.rpartition("\t")
-        if title:
-            ids[title] = int(wid)
+        print("IDS " + out.join(","));
+        if (err) print("ERR " + err);
+    """, check=False)
+
+    ids: list[int] = []
+    error = ""
+    for line in out.splitlines():
+        if line.startswith("IDS "):
+            ids = [int(i) for i in line[4:].split(",") if i.strip()]
+        elif line.startswith("ERR "):
+            error = line[4:].strip()
+
+    if error:
+        raise WidgetCreationError(f"creating widgets failed: {error}", ids)
     if len(ids) != len(entries):
-        raise PlasmaError(f"expected {len(entries)} widgets, created {len(ids)}")
+        raise WidgetCreationError(
+            f"expected {len(entries)} widgets, created {len(ids)}", ids)
     return ids
 
 
@@ -166,6 +205,34 @@ def remove_widgets(applet_ids: list[int]) -> int:
         print(removed);
     """)
     return int(out.strip() or 0)
+
+
+def backup_appletsrc() -> Path | None:
+    """Copy the desktop layout aside before we rewrite part of it.
+
+    ``ItemGeometries`` is private API in a file that also holds every panel,
+    widget and wallpaper setting the user has. Restoring is a plain copy back
+    with plasmashell stopped, which is worth the few kilobytes a run costs.
+    """
+    if not APPLETSRC.exists():
+        return None
+
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Timestamped so the names sort in age order and mean something to whoever
+    # is reading the directory to pick one to restore.
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    target = BACKUP_DIR / f"{APPLETSRC.name}.{stamp}"
+    for attempt in range(2, 100):
+        if not target.exists():
+            break
+        target = BACKUP_DIR / f"{APPLETSRC.name}.{stamp}-{attempt}"
+    shutil.copy2(APPLETSRC, target)
+
+    existing = sorted(BACKUP_DIR.glob(f"{APPLETSRC.name}.*"))
+    for stale in existing[:-KEEP_BACKUPS]:
+        stale.unlink(missing_ok=True)
+    return target
 
 
 def write_item_geometries(containment: int, resolution: str, geometry: str) -> None:

@@ -31,16 +31,52 @@ the panel background is optionally translucent. Clicking launches; dragging an
 application onto a group adds it.
 
 ```
-paddocks discover > ~/.config/paddocks.toml   # starting point from ~/Desktop
-$EDITOR ~/.config/paddocks.toml               # split into groups
+paddocks discover > ~/.config/paddocks.toml   # every installed app, pre-grouped
+$EDITOR ~/.config/paddocks.toml               # cut it down to what you use
 paddocks apply --dry-run                      # check the computed layout
 paddocks apply
 ```
 
-An app id that no longer resolves to an installed `.desktop` file is reported
-as `!! not installed` and skipped, and the group is built without it. Pass
-`--strict` to make that an error instead — useful once a config is settled, or
-when driving `apply` from a script:
+`discover` reads every installed `.desktop` file and buckets it by the
+`Categories=` field, which is roughly the grouping the application menu already
+shows, and annotates each id with the application name so the config is
+editable without looking anything up:
+
+```toml
+[[group]]
+name = "Graphics"
+apps = [
+    "org.blender.Blender",   # Blender
+    "org.inkscape.Inkscape", # Inkscape
+    "org.kde.krita",         # Krita
+]
+```
+
+That is deliberately more than fits on a screen — it is a list to delete from.
+`--desktop-only` narrows it to apps that already have a launcher in `~/Desktop`,
+and `--all` adds the System and Settings entries that are otherwise left out.
+
+### App ids
+
+Ids do not have to be the exact `.desktop` filename. The same application is
+`firefox` from a distro package, `firefox_firefox` from a snap and
+`org.mozilla.firefox` from a flatpak, so `apps` entries are also matched against
+the reverse-DNS tail, the snap-style suffix, and the launcher's `Name=`. A match
+that was not exact is reported, so you can tighten the config if you want to:
+
+```
+~~ matched by name: Office and Web/firefox -> firefox_firefox
+```
+
+An id that resolves to nothing is reported with the nearest candidates and
+skipped, and the group is built without it:
+
+```
+!! not installed: Dev Tools/vscode  (did you mean: code, discord?)
+```
+
+Pass `--strict` to make that an error instead — useful once a config is settled,
+or when driving `apply` from a script:
 
 ```
 paddocks apply --strict        # exits 1, changes nothing, if any id is missing
@@ -236,6 +272,20 @@ previously (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from
 the config. Widgets you placed by hand are left alone, but not moved out of the
 way either. Launchers you add by dragging onto a group live in that widget's
 config, so `apply` will discard them — add them to the TOML instead.
+
+**Every `apply` backs up your desktop layout first.** `ItemGeometries` lives in
+`plasma-org.kde.plasma.desktop-appletsrc`, alongside every panel, widget and
+wallpaper setting you have, so the file is copied into
+`~/.local/state/paddocks/backups/` before it is touched. The last five are kept.
+Restoring one is a copy back, with plasmashell stopped — the same reason the
+write itself needs it:
+
+```
+kquitapp6 plasmashell
+cp ~/.local/state/paddocks/backups/plasma-org.kde.plasma.desktop-appletsrc.<stamp> \
+   ~/.config/plasma-org.kde.plasma.desktop-appletsrc
+plasmashell &
+```
 
 **Do not `resolve()` launcher paths.** Flatpak's `exports/share/applications`
 is a symlink farm into content-addressed store paths. Following those symlinks

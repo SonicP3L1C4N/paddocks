@@ -29,10 +29,16 @@ def main() -> int:
 
     sub.add_parser("remove", help="remove groups created by apply")
 
-    p_discover = sub.add_parser("discover",
-                                help="emit a starter config from ~/Desktop")
+    p_discover = sub.add_parser(
+        "discover", help="emit a starter config from your installed apps")
+    p_discover.add_argument("--desktop-only", action="store_true",
+                            help="only include apps that already have a "
+                                 "launcher in --desktop-dir")
     p_discover.add_argument("--desktop-dir", type=Path,
-                            default=Path.home() / "Desktop")
+                            default=Path.home() / "Desktop",
+                            help="where --desktop-only looks (default ~/Desktop)")
+    p_discover.add_argument("--all", action="store_true", dest="include_all",
+                            help="include System and Settings entries too")
 
     p_trans = sub.add_parser("translucency", help="widget background opacity")
     p_trans.add_argument("value", nargs="?",
@@ -65,7 +71,10 @@ def dispatch(args) -> int:
         return 0
 
     if args.command == "discover":
-        sys.stdout.write(groups.discover(args.desktop_dir))
+        sys.stdout.write(groups.discover(
+            args.desktop_dir if args.desktop_only else None,
+            include_all=args.include_all,
+        ))
         return 0
 
     if args.command == "translucency":
@@ -76,8 +85,15 @@ def dispatch(args) -> int:
             removed = translucency.reset()
             print("Restored:", ", ".join(removed) or "nothing to restore")
             return 0
-        touched = translucency.apply(float(args.value))
-        print(f"Patched at opacity {args.value}:", ", ".join(touched))
+        try:
+            opacity = float(args.value)
+        except ValueError:
+            raise ValueError(
+                f"{args.value!r} is not an opacity; give a number between 0 "
+                "and 1 (e.g. 0.4), or 'reset'"
+            ) from None
+        touched = translucency.apply(opacity)
+        print(f"Patched at opacity {opacity}:", ", ".join(touched))
         return 0
 
     if args.command == "status":
@@ -85,7 +101,8 @@ def dispatch(args) -> int:
         if not state.get("widgets"):
             print("No groups currently created.")
         else:
-            print(f"Containment {state['containment']} @ {state['resolution']}")
+            print(f"Containment {state.get('containment', '?')} "
+                  f"@ {state.get('resolution', '?')}")
             for widget in state["widgets"]:
                 print(f"  {widget['name']:<20} applet {widget['id']}")
         print("Themes shadowed:",
