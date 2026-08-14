@@ -7,10 +7,9 @@ SPDX-License-Identifier: MIT
 # Plasma bug reports drafted from the Paddocks README
 
 Seven reports out of the five findings in the README's "The five things that cost
-an afternoon", which decompose into defects and separate wishlists. **None of
-these are filed yet** — this is the drafting copy. As each one goes up at
-https://bugs.kde.org, add its bug number here so the README's findings and the
-upstream reports stay linked.
+an afternoon", which decompose into defects and separate wishlists. This is the
+drafting copy; as each one goes up at https://bugs.kde.org its number is recorded
+below, so the README's findings and the upstream reports stay linked.
 
 Shared version block (paste into every report):
 
@@ -31,15 +30,15 @@ exact. Note there is **no `plasma-workspace` product** — the Plasma shell,
 including the code that ships in the `plasma-workspace` package, is filed under
 `plasmashell`.
 
-| # | Product | Component | Severity |
-|---|---|---|---|
-| 1 | plasmashell | `desktop:/ IOWorker` | normal |
-| 2 | plasmashell | `Folder View widget` | normal |
-| 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | |
-| 4 | plasmashell | `general` | normal |
-| 5 | frameworks-ksvg | `General` | minor |
-| 6 | plasmashell | `Theme - Breeze` | minor |
-| 7 | plasmashell | `Containment` | wishlist |
+| # | Product | Component | Severity | Status |
+|---|---|---|---|---|
+| 1 | plasmashell | `desktop:/ IOWorker` | normal | **filed — [524242](https://bugs.kde.org/show_bug.cgi?id=524242)**, REPORTED |
+| 2 | plasmashell | `Folder View widget` | normal | not filed |
+| 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | not posted |
+| 4 | plasmashell | `general` | normal | not filed |
+| 5 | frameworks-ksvg | `General` | minor | not filed |
+| 6 | plasmashell | `Theme - Breeze` | minor | optional, see note |
+| 7 | plasmashell | `Containment` | wishlist | not filed |
 
 Duplicate searches run at the same time: nothing pre-existing for 1, 2, 4, 5 or
 7. Report 4 is **not** a duplicate of [bug 507681](https://bugs.kde.org/show_bug.cgi?id=507681)
@@ -50,8 +49,12 @@ missing KConfigWatcher notify flag, reported in 6.4.3 and fixed in 6.4.5.
 
 ## 1. `desktop:/` subpaths list correctly but launching is a silent no-op
 
+**Filed 2026-08-14 as [bug 524242](https://bugs.kde.org/show_bug.cgi?id=524242)**
+— status REPORTED, assigned to Plasma Bugs List.
+
 **Product:** plasmashell · **Component:** `desktop:/ IOWorker` ("Only for bugs in
-the desktop:/ KIO Worker") · **Severity:** normal
+the desktop:/ KIO Worker") · **Severity:** normal · **Version:** 6.6.0 (the
+nearest the version list offers; the exact 6.6.6 is in the report body)
 
 The component has six bugs in it, all about properties dialogs, symlinks and
 drag-and-drop. Nothing on execution — this is not a duplicate.
