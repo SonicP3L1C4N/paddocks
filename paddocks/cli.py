@@ -94,14 +94,15 @@ def dispatch(args) -> int:
         return 0
 
     if args.command == "edit":
-        # Imported here so the rest of the tool works without PyQt6 installed.
+        # Imported here so the rest of the tool works without PySide6 installed.
         try:
             from . import gui
         except ImportError as exc:
             raise RuntimeError(
-                f"the editor needs PyQt6 ({exc}). Reinstall with the extra "
+                f"the editor needs PySide6 ({exc}). Reinstall with the extra "
                 "(`pipx install 'paddocks[gui]'`), install it system-wide "
-                "(`sudo apt install python3-pyqt6`), or edit the TOML by hand."
+                "(`sudo apt install python3-pyside6.qtwidgets`), or edit the "
+                "TOML by hand."
             ) from None
         return gui.run(args.config)
 

@@ -39,9 +39,10 @@ ln -s "$PWD/paddocks/bin/paddocks" ~/.local/bin/paddocks
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 `qdbus6` / `kwriteconfig6` / `kquitapp6`, all standard on a Plasma install.
 The command line has no third-party dependencies; only `paddocks edit` needs
-PyQt6, which the `[gui]` extra pulls in. A distro package
-(`sudo apt install python3-pyqt6`) works too, and is what a checkout uses — drop
-the extra to avoid a second copy of Qt in a venv.
+PySide6, which the `[gui]` extra pulls in. A distro package
+(`sudo apt install python3-pyside6.qtwidgets`) works too, and is what a checkout
+uses — drop the extra to avoid a second copy of Qt in a venv. PySide6 is the LGPL
+binding; PyQt6 is GPL-3.0-or-commercial, which does not suit an MIT project.
 
 ## Use
 
@@ -330,7 +331,7 @@ python3 -m unittest discover -s tests -t .
 Standard library only, nothing to install. The tests never touch your real
 config, state file or a running plasmashell — the plasma module is replaced
 wholesale rather than patched function by function, so a missed attribute
-cannot take your desktop down. Editor tests skip themselves if PyQt6 is absent.
+cannot take your desktop down. Editor tests skip themselves if PySide6 is absent.
 
 ## Trademarks
 

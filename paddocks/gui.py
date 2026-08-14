@@ -4,7 +4,7 @@
 
 """A small Qt window for editing the config.
 
-PyQt6 is imported here and nowhere else, so the command line keeps working on
+PySide6 is imported here and nowhere else, so the command line keeps working on
 a machine that does not have it.
 
 The three lists are the model. Rather than mirroring the config into widgets and
@@ -21,9 +21,9 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import QSize, Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPalette
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QSize, Qt, QThread, Signal
+from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPalette
+from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QComboBox, QDialog, QDialogButtonBox,
     QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter,
@@ -91,7 +91,7 @@ def app_icon(entry: apps.Entry | None) -> QIcon:
 class Worker(QThread):
     """Runs apply/dry-run off the UI thread; it stops plasmashell and waits."""
 
-    done = pyqtSignal(bool, str)
+    done = Signal(bool, str)
 
     def __init__(self, config: groups.Config, dry_run: bool):
         super().__init__()

@@ -28,8 +28,10 @@ classifiers = [
 # The command line is stdlib-only by design; only the editor needs Qt.
 dependencies = []
 
+# PySide6 rather than PyQt6: PySide6 is LGPL, PyQt6 is GPL-3.0-or-commercial,
+# and this project is MIT.
 [project.optional-dependencies]
-gui = ["PyQt6>=6.6"]
+gui = ["PySide6>=6.6"]
 
 [project.scripts]
 paddocks = "paddocks.cli:main"

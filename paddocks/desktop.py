@@ -5,7 +5,7 @@
 """Putting Paddocks in the application menu.
 
 Deliberately free of any Qt import: installing the menu entry is a file copy,
-and there is no reason to need PyQt6 to do it.
+and there is no reason to need PySide6 to do it.
 
 The .desktop file is generated rather than shipped, because ``Exec=`` has to
 carry the absolute path of wherever this was cloned to. A checked-in file would
@@ -84,7 +84,7 @@ def preferred_variant() -> str:
     """Pick the icon that suits the current colour scheme.
 
     Read out of kdeglobals rather than asked of Qt, so that the command line
-    can install the right one without PyQt6 present.
+    can install the right one without PySide6 present.
     """
     kdeglobals = Path(os.environ.get("XDG_CONFIG_HOME",
                                      Path.home() / ".config")) / "kdeglobals"

@@ -124,7 +124,7 @@ class TheEditorOptsOut(unittest.TestCase):
         try:
             from paddocks import gui
         except ImportError:
-            self.skipTest("PyQt6 is not installed")
+            self.skipTest("PySide6 is not installed")
 
         config = groups.Config(groups=[groups.Group("G", ["nothing"])],
                                metrics=Metrics(), strict=True)

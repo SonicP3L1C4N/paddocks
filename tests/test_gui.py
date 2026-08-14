@@ -4,7 +4,7 @@
 
 """The editor, headless.
 
-Skipped entirely when PyQt6 is missing, so the suite still runs on a machine
+Skipped entirely when PySide6 is missing, so the suite still runs on a machine
 that only has the command line.
 """
 
@@ -19,8 +19,8 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PyQt6.QtCore import QModelIndex, Qt
-    from PyQt6.QtWidgets import QApplication
+    from PySide6.QtCore import QModelIndex, Qt
+    from PySide6.QtWidgets import QApplication
     from paddocks import gui
     QT = True
 except ImportError:  # pragma: no cover - depends on the machine
@@ -53,7 +53,7 @@ def setUpModule():
         _app = QApplication.instance() or QApplication([])
 
 
-@unittest.skipUnless(QT, "PyQt6 is not installed")
+@unittest.skipUnless(QT, "PySide6 is not installed")
 class EditorTest(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
