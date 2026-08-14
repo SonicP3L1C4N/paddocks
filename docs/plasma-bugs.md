@@ -381,6 +381,43 @@ I had drafted this as "probably not worth filing standalone" — a tidiness repo
 with no user-visible symptom. Filed anyway, which was the better call: it gives
 #7 something concrete to cite, and it is verifiable in one command.
 
+**Filed from the pre-conversion markdown draft**, so its ADDITIONAL INFORMATION
+section is the drafting note arguing against filing it, rather than report
+content. Comment 0 is not editable by the reporter on KDE Bugzilla, so the fix is
+the follow-up below. The paste block further down is the corrected version and
+was never posted.
+
+### Follow-up comment to post on 524246
+
+```text
+The ADDITIONAL INFORMATION paragraph above is a stray note from my drafting file,
+about whether to file this at all -- please disregard it, it is not part of the
+report.
+
+Two things the description was missing.
+
+Step 3 in full:
+
+    kquitapp6 plasmashell
+    rm -f ~/.cache/plasma_theme_*.kcache ~/.cache/ksvg-elements
+    plasmashell &
+
+The cache deletion has to happen while the shell is stopped, or it repopulates
+from memory. Patching widgets/background.svgz in the same theme copy does take
+effect, so the theme shadowing and the cache clearing are both working -- the
+translucent/ variant simply is not read.
+
+And why it seemed worth reporting rather than leaving alone: it is the obvious
+first file to patch when trying to make applet backgrounds translucent, so the
+time it costs is spent before you have any reason to doubt it.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
+```
+
 ### Report body to paste
 
 ```text
