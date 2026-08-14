@@ -318,9 +318,12 @@ Graphics Platform: Wayland
 **Filed 2026-08-14 as [bug 524245](https://bugs.kde.org/show_bug.cgi?id=524245)**
 — status REPORTED, assigned to Plasma Bugs List.
 
-**Product:** frameworks-ksvg · **Component:** `General` · **Severity:** normal
-(filed as normal rather than the minor drafted here) · **Version:** 6.24.0, the
-KSvg/Frameworks number — this is a Frameworks product, not a Plasma one
+**Product:** frameworks-ksvg · **Component:** `General` · **Severity:** normal ·
+**Version:** 6.24.0, the KSvg/Frameworks number — this is a Frameworks product,
+not a Plasma one
+
+Drafted as `minor`, filed as `normal`, and `normal` is the better call: stale
+artwork is wrong output, not a cosmetic nit. Left as filed.
 
 frameworks-ksvg is "Library for complex SVG handling, including support for
 dynamic re-coloring, 9-patch images, and disk caching" — the disk caching clause
