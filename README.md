@@ -93,6 +93,13 @@ it turns up. A folder's contents change under you, so there is no count to size
 it from: `cells = 12` sets how many icon slots to size the box for, defaulting
 to 8, and the folder scrolls past that rather than growing.
 
+**It is a window onto a folder, not a file browser.** Files open in their default
+application and subfolders open in Dolphin — you cannot drill down inside the
+widget. Folder View does have in-place navigation, with a back button, but it is
+reachable only from a panel popup: `useListViewMode` is `isPopup && …`, and a
+widget on the desktop is `Floating`, so the desktop always takes the other
+branch and hands the URL to KIO.
+
 A group is one thing or the other — setting both `apps` and `path` is an error
 rather than a guess. Folder groups are Folder View widgets, which is the right
 widget for files and the wrong one for launchers, for the reasons in gotcha #1.
