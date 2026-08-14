@@ -319,31 +319,13 @@ Graphics Platform: Wayland
 — status REPORTED, assigned to Plasma Bugs List.
 
 **Product:** frameworks-ksvg · **Component:** `General` · **Severity:** normal
-(filed as normal rather than the minor drafted here) · **Version:** 6.6.0
+(filed as normal rather than the minor drafted here) · **Version:** 6.24.0, the
+KSvg/Frameworks number — this is a Frameworks product, not a Plasma one
 
 frameworks-ksvg is "Library for complex SVG handling, including support for
 dynamic re-coloring, 9-patch images, and disk caching" — the disk caching clause
 is this bug. It has a single `General` component. If the cache turns out not to
 be KSvg's, the other candidate is the `libplasma` product.
-
-**Loose end:** the version field reads 6.6.0, which is a Plasma version. This is
-a Frameworks product, so the meaningful number is KF 6.24.0, and 6.6.0 reads as
-a KF release from 2024 — old enough that a triager may assume it is stale. The
-report body carries no version block either. Worth a follow-up comment; text is
-below.
-
-### Follow-up comment to post on 524245
-
-```text
-Correcting the version field, which I set to a Plasma version by mistake -- this
-is a Frameworks product, so the number that matters is the KSvg one.
-
-Operating System: Ubuntu 26.04 LTS (Kubuntu)
-KDE Plasma Version: 6.6.6
-KDE Frameworks Version: 6.24.0
-Qt Version: 6.10.2
-Graphics Platform: Wayland
-```
 
 ### SUMMARY
 
