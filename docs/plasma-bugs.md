@@ -22,15 +22,39 @@ Qt Version: 6.10.2
 Graphics Platform: Wayland
 ```
 
-Priority order for filing: **4, 1, 3** first (strongest, clearly defects), then
-**2, 5**, then **7**. Report **6** is optional — see the note on it.
+Priority order: **3** first (it is a comment on an existing bug, not a new
+report), then **4, 1** — then **2, 5**, then **7**. Report **6** is optional; see
+the note on it.
+
+Products and components below were checked against Bugzilla on 2026-08-14 and are
+exact. Note there is **no `plasma-workspace` product** — the Plasma shell,
+including the code that ships in the `plasma-workspace` package, is filed under
+`plasmashell`.
+
+| # | Product | Component | Severity |
+|---|---|---|---|
+| 1 | plasmashell | `desktop:/ IOWorker` | normal |
+| 2 | plasmashell | `Folder View widget` | normal |
+| 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | |
+| 4 | plasmashell | `general` | normal |
+| 5 | frameworks-ksvg | `General` | minor |
+| 6 | plasmashell | `Theme - Breeze` | minor |
+| 7 | plasmashell | `Containment` | wishlist |
+
+Duplicate searches run at the same time: nothing pre-existing for 1, 2, 4, 5 or
+7. Report 4 is **not** a duplicate of [bug 507681](https://bugs.kde.org/show_bug.cgi?id=507681)
+("the plasma-apply-desktoptheme cli tool does not work anymore"), which was a
+missing KConfigWatcher notify flag, reported in 6.4.3 and fixed in 6.4.5.
 
 ---
 
 ## 1. `desktop:/` subpaths list correctly but launching is a silent no-op
 
-**Product:** plasma-workspace · **Component:** kio_desktop (reassign if wrong —
-the worker lives in `kioworkers/desktop`) · **Severity:** normal
+**Product:** plasmashell · **Component:** `desktop:/ IOWorker` ("Only for bugs in
+the desktop:/ KIO Worker") · **Severity:** normal
+
+The component has six bugs in it, all about properties dialogs, symlinks and
+drag-and-drop. Nothing on execution — this is not a duplicate.
 
 ### SUMMARY
 
@@ -83,7 +107,7 @@ launcher panel; the workaround was to abandon Folder View entirely in favour of
 
 ## 2. Folder View at a `file://` URL labels `.desktop` files by filename, not `Name=`
 
-**Product:** plasma-workspace · **Component:** Folder View · **Severity:** normal
+**Product:** plasmashell · **Component:** `Folder View widget` · **Severity:** normal
 
 ### SUMMARY
 
@@ -121,9 +145,21 @@ inconsistency may still be worth a look.
 
 ## 3. Widget geometry cannot be set from the Plasma scripting API, and fails silently
 
-**Product:** plasma-workspace · **Component:** Scripting · **Severity:** normal
+**Do not file this as a new bug.** It already exists as
+[bug 362511, "Allow setting desktop widget geometry using scripting API"](https://bugs.kde.org/show_bug.cgi?id=362511)
+— plasmashell / Scripting, CONFIRMED, opened 30 April 2016, last active
+12 December 2025.
 
-### SUMMARY
+That bug is live rather than abandoned: Marco Martin confirmed in 2016 that
+applet geometry is not exposed to the scripting console and floated passing
+position arguments to `addWidget()` instead, and in November 2025 a commenter
+noted `SetGeometry` appears to be empty in the source and offered to attempt a
+fix.
+
+What it does **not** yet record is the failure mode, which is the expensive part.
+Post the rest of this as a comment there.
+
+### The silent-failure detail worth adding
 
 `desktop.addWidget()` works, but there is no working way to position the widget
 it returns. The documented-looking form throws, and the form that does not throw
@@ -184,8 +220,10 @@ format that a point release can change.
 
 ## 4. `plasma-apply-desktoptheme` reports success while `AutomaticLookAndFeel` silently overrides it
 
-**Product:** plasma-workspace · **Component:** plasma-apply-desktoptheme
-(fall back to `generic` if that component does not exist) · **Severity:** normal
+**Product:** plasmashell · **Component:** `general` · **Severity:** normal
+
+`general` is where the other `plasma-apply-*` reports live (bugs 472792, 511377,
+507681). There is no dedicated component for these tools.
 
 ### SUMMARY
 
@@ -240,8 +278,12 @@ schedule flips.
 
 ## 5. Plasma theme pixmap cache is not invalidated when a theme's files change under the same name
 
-**Product:** frameworks-ksvg (reassign to plasma-workspace if the cache is not
-KSvg's) · **Component:** general · **Severity:** minor
+**Product:** frameworks-ksvg · **Component:** `General` · **Severity:** minor
+
+frameworks-ksvg is "Library for complex SVG handling, including support for
+dynamic re-coloring, 9-patch images, and disk caching" — the disk caching clause
+is this bug. It has a single `General` component. If the cache turns out not to
+be KSvg's, the other candidate is the `libplasma` product.
 
 ### SUMMARY
 
@@ -284,7 +326,7 @@ two together produce a change that is invisible for two separate reasons at once
 
 ## 6. `translucent/widgets/background.svgz` is shipped by every theme and referenced by nothing
 
-**Product:** plasma-workspace · **Component:** Theme - Breeze · **Severity:** minor
+**Product:** plasmashell · **Component:** `Theme - Breeze` · **Severity:** minor
 
 ### SUMMARY
 
@@ -322,8 +364,12 @@ into #7 as an additional note and skip filing it standalone.
 
 ## 7. [Wishlist] No way to control desktop widget background opacity
 
-**Product:** plasma-workspace · **Component:** Desktop Containment ·
-**Severity:** wishlist
+**Product:** plasmashell · **Component:** `Containment` ("The main central desktop
+area responsible for widget positioning") · **Severity:** wishlist
+
+`BasicAppletContainer.qml` ships in the `plasma-workspace` package at
+`/usr/lib/*/qt6/qml/org/kde/plasma/private/containmentlayoutmanager/`, so the
+containment layout manager is the right owner.
 
 ### SUMMARY
 
