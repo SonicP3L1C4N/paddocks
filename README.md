@@ -81,9 +81,11 @@ file in and it appears on the desktop, with no `paddocks apply` in between.
 
 ```toml
 [[group]]
-name = "Downloads"
-path = "~/Downloads"
+name = "Pictures"
+path = "~/Pictures"
 ```
+
+![A folder group on the desktop: the Pictures folder shown live, with the wallpaper through its translucent background](docs/folder-group.png)
 
 `~` and `$VARS` are expanded, and a path that does not exist yet is a warning
 rather than an error, so a folder on a drive you have not mounted fills in when
