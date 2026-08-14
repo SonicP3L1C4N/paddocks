@@ -8,25 +8,53 @@ from __future__ import annotations
 
 import difflib
 import json
+import os
 import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import apps, plasma
-from .layout import ALIGNMENTS, ARRANGEMENTS, Metrics, solve
+from .layout import (ALIGNMENTS, ARRANGEMENTS, FOLDER_CELLS, Metrics, solve)
 
 STATE_FILE = plasma.STATE_DIR / "state.json"
 
 TOP_LEVEL_KEYS = {"settings", "group"}
 SETTINGS_KEYS = set(Metrics.__dataclass_fields__) | {"arrangement", "strict"}
-GROUP_KEYS = {"name", "apps"}
+GROUP_KEYS = {"name", "apps", "path", "cells"}
 
 
 @dataclass
 class Group:
+    """One group: either a list of launchers, or a folder shown live.
+
+    `path` makes it a folder group -- a Folder View onto a real directory,
+    which keeps up with the directory's contents rather than snapshotting
+    them. `apps` and `path` are mutually exclusive; a group is one or other.
+    """
+
     name: str
     apps: list[str]
+    path: str | None = None
+    cells: int = FOLDER_CELLS
+
+    @property
+    def is_folder(self) -> bool:
+        return self.path is not None
+
+    def expanded_path(self) -> Path | None:
+        """The folder this group points at, with ~ and $VARS resolved.
+
+        Absolute, because the URL handed to Folder View has to be -- but never
+        resolve()d: the export directories flatpak puts under ~/.local/share
+        are symlink farms into content-addressed paths, and the same reasoning
+        that keeps launcher URLs unresolved applies to a folder the user named
+        by its stable path.
+        """
+        if self.path is None:
+            return None
+        expanded = Path(os.path.expandvars(os.path.expanduser(self.path)))
+        return expanded if expanded.is_absolute() else Path.cwd() / expanded
 
 
 @dataclass
@@ -96,7 +124,33 @@ def _load_group(raw: dict, position: int, path: Path) -> Group:
     if not isinstance(app_ids, list) or any(not isinstance(a, str) for a in app_ids):
         raise ConfigError(f"{where} ({name}): `apps` must be a list of strings")
 
-    return Group(name=name.strip(), apps=list(app_ids))
+    folder = raw.get("path")
+    if folder is not None:
+        if not isinstance(folder, str) or not folder.strip():
+            raise ConfigError(
+                f"{where} ({name}): `path` must be a non-empty string"
+            )
+        if app_ids:
+            raise ConfigError(
+                f"{where} ({name}) sets both `apps` and `path`. A group is "
+                "either a list of launchers or a folder shown live, not both; "
+                "split it into two groups."
+            )
+        folder = folder.strip()
+
+    cells = raw.get("cells", FOLDER_CELLS)
+    if isinstance(cells, bool) or not isinstance(cells, int) or cells < 1:
+        raise ConfigError(
+            f"{where} ({name}): `cells` must be a whole number of icon slots "
+            f"of 1 or more, got {raw.get('cells')!r}"
+        )
+    if "cells" in raw and folder is None:
+        raise ConfigError(
+            f"{where} ({name}): `cells` sizes a folder group, but this group "
+            "has no `path`. An app group is sized from how many apps it lists."
+        )
+
+    return Group(name=name.strip(), apps=list(app_ids), path=folder, cells=cells)
 
 
 def _warnings(groups: list[Group]) -> list[str]:
@@ -121,6 +175,19 @@ def _warnings(groups: list[Group]) -> list[str]:
 
     owners: dict[str, list[str]] = {}
     for group in groups:
+        if group.is_folder:
+            # Reported rather than fatal: a folder on a drive that is not
+            # mounted yet is a normal state, and the widget copes -- it shows
+            # empty and fills in when the path appears.
+            target = group.expanded_path()
+            if not target.exists():
+                problems.append(
+                    f"{group.name} points at {target}, which does not exist yet")
+            elif not target.is_dir():
+                problems.append(
+                    f"{group.name} points at {target}, which is a file, not a "
+                    "folder")
+            continue
         if not group.apps:
             problems.append(f"{group.name} lists no apps and will be an empty box")
         # Tracked per group as we go: deriving it afterwards from the owner
@@ -229,12 +296,16 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> Non
         misses += group_misses
         swaps += group_swaps
 
-    counts = [(g.name, len(urls)) for g, urls in resolved]
+    counts = [(g.name, g.cells if g.is_folder else len(urls), g.is_folder)
+              for g, urls in resolved]
     boxes = solve(counts, screen, cfg.metrics, cfg.arrangement)
 
     print(f"Screen {resolution}, arrangement {cfg.arrangement!r}")
-    for box, (_, urls) in zip(boxes, resolved):
-        print(f"  {box.name:<20} {len(urls):>2} apps   {box.x},{box.y}  {box.w}x{box.h}  {box.rows} row(s)")
+    for box, (group, urls) in zip(boxes, resolved):
+        held = (f"folder {group.expanded_path()}" if group.is_folder
+                else f"{len(urls):>2} apps")
+        print(f"  {box.name:<20} {held}   {box.x},{box.y}  "
+              f"{box.w}x{box.h}  {box.rows} row(s)")
     for item in swaps:
         print(f"  ~~ matched by name: {item}")
     for item in misses:
@@ -263,9 +334,12 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> Non
     print("Creating widgets")
     names = [g.name for g, _ in resolved]
     try:
-        ids = plasma.add_quicklaunch_widgets(
-            [(g.name, urls, box.rows) for (g, urls), box in zip(resolved, boxes)]
-        )
+        ids = plasma.add_group_widgets([
+            {"kind": "folder", "title": g.name, "url": g.expanded_path().as_uri()}
+            if g.is_folder else
+            {"kind": "apps", "title": g.name, "urls": urls, "rows": box.rows}
+            for (g, urls), box in zip(resolved, boxes)
+        ])
     except plasma.WidgetCreationError as exc:
         if exc.ids:
             _record(state, names, exc.ids)
@@ -379,6 +453,11 @@ def dump_config(cfg: Config, index: apps.Index | None = None,
 
     for group in cfg.groups:
         lines += ["", "[[group]]", f"name = {_toml_value(group.name)}"]
+        if group.is_folder:
+            lines.append(f"path = {_toml_value(group.path)}")
+            if group.cells != FOLDER_CELLS:
+                lines.append(f"cells = {group.cells}")
+            continue
         if not group.apps:
             lines.append("apps = []")
             continue

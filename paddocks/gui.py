@@ -25,9 +25,9 @@ from PySide6.QtCore import QSize, Qt, QThread, Signal
 from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QComboBox, QDialog, QDialogButtonBox,
-    QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox, QSplitter,
-    QVBoxLayout, QWidget,
+    QFileDialog, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
+    QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton,
+    QSpinBox, QSplitter, QVBoxLayout, QWidget,
 )
 
 from . import apps, desktop, groups
@@ -175,13 +175,16 @@ class Editor(QMainWindow):
 
         add = QPushButton(QIcon.fromTheme("list-add"), "Add")
         add.clicked.connect(self._add_group)
+        add_folder = QPushButton(QIcon.fromTheme("folder-open"), "Add folder")
+        add_folder.setToolTip("A group that shows a folder's contents, live")
+        add_folder.clicked.connect(self._add_folder_group)
         rename = QPushButton(QIcon.fromTheme("edit-rename"), "Rename")
         rename.clicked.connect(self._rename_group)
         delete = QPushButton(QIcon.fromTheme("list-remove"), "Delete")
         delete.clicked.connect(self._delete_group)
 
         buttons = QHBoxLayout()
-        for button in (add, rename, delete):
+        for button in (add, add_folder, rename, delete):
             buttons.addWidget(button)
 
         return _panel("Groups — drag to reorder", self.group_list, buttons)
@@ -196,10 +199,10 @@ class Editor(QMainWindow):
         self.app_list.model().rowsMoved.connect(self._touch)
         self.app_list.itemDoubleClicked.connect(lambda _: self._remove_apps())
 
-        remove = QPushButton(QIcon.fromTheme("list-remove"), "Remove")
-        remove.clicked.connect(self._remove_apps)
+        self.remove_button = QPushButton(QIcon.fromTheme("list-remove"), "Remove")
+        self.remove_button.clicked.connect(self._remove_apps)
         buttons = QHBoxLayout()
-        buttons.addWidget(remove)
+        buttons.addWidget(self.remove_button)
         buttons.addStretch(1)
 
         self.contents_label = QLabel("Applications in group")
@@ -234,10 +237,11 @@ class Editor(QMainWindow):
             item.setToolTip(f"{entry.app_id}\n{entry.path}")
             self.library.addItem(item)
 
-        add = QPushButton(QIcon.fromTheme("go-previous"), "Add to group")
-        add.clicked.connect(self._add_apps)
+        self.add_app_button = QPushButton(QIcon.fromTheme("go-previous"),
+                                          "Add to group")
+        self.add_app_button.clicked.connect(self._add_apps)
         buttons = QHBoxLayout()
-        buttons.addWidget(add)
+        buttons.addWidget(self.add_app_button)
         buttons.addStretch(1)
 
         panel = _panel(f"Installed applications ({self.library.count()})",
@@ -394,7 +398,10 @@ class Editor(QMainWindow):
     # -------------------------------------------------------------- groups
 
     def _add_group_item(self, group: groups.Group) -> QListWidgetItem:
-        item = QListWidgetItem(QIcon.fromTheme("folder"), group.name)
+        icon = "folder-open" if group.is_folder else "folder"
+        item = QListWidgetItem(QIcon.fromTheme(icon), group.name)
+        if group.is_folder:
+            item.setToolTip(f"Folder group, showing {group.expanded_path()}")
         item.setData(ROLE, group)
         self.group_list.addItem(item)
         return item
@@ -407,14 +414,39 @@ class Editor(QMainWindow):
         if previous is not None:
             self._flush_apps(previous.data(ROLE))
         group = current.data(ROLE) if current else None
+        self.app_list.clear()
+
+        if group is not None and group.is_folder:
+            # A folder group has no app list to edit -- Plasma reads the
+            # directory live. Show what it points at instead, and take the
+            # editing affordances away rather than letting a drop or a
+            # double-click build a list that would be discarded on save.
+            self.contents_label.setText(f"“{group.name}” shows a folder")
+            target = group.expanded_path()
+            item = QListWidgetItem(QIcon.fromTheme("folder-open"), str(target))
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            if not target.exists():
+                item.setForeground(QBrush(MISSING_COLOUR))
+                item.setText(f"{target}  (does not exist yet)")
+            self.app_list.addItem(item)
+            self._set_app_editing(False)
+            return
+
+        self._set_app_editing(True)
         self.contents_label.setText(
             f"Applications in “{group.name}” — drag to reorder" if group
             else "Applications in group")
-        self.app_list.clear()
         if group is None:
             return
         for app_id in group.apps:
             self.app_list.addItem(self._app_item(app_id))
+
+    def _set_app_editing(self, on: bool) -> None:
+        self.app_list.setDragDropMode(
+            QAbstractItemView.DragDropMode.InternalMove if on
+            else QAbstractItemView.DragDropMode.NoDragDrop)
+        self.remove_button.setEnabled(on)
+        self.add_app_button.setEnabled(on)
 
     def _app_item(self, app_id: str) -> QListWidgetItem:
         entry, how = self.index.resolve(app_id)
@@ -448,6 +480,39 @@ class Editor(QMainWindow):
                                 "have to be unique.")
             return
         item = self._add_group_item(groups.Group(name=name, apps=[]))
+        self.group_list.setCurrentItem(item)
+        self._touch()
+
+    def _add_folder_group(self) -> None:
+        """A group that shows a folder, rather than a list of launchers."""
+        chosen = QFileDialog.getExistingDirectory(
+            self, "Show which folder?", str(Path.home()))
+        if not chosen:
+            return
+        target = Path(chosen)
+
+        # Offered rather than imposed: the folder's own name is the obvious
+        # title, but the group name is the widget's heading and has to be
+        # unique, so it is worth a prompt.
+        name, ok = QInputDialog.getText(
+            self, "New folder group", "Group name:", text=target.name)
+        name = name.strip()
+        if not ok or not name:
+            return
+        if self._name_taken(name):
+            QMessageBox.warning(self, "Name in use",
+                                f"A group called “{name}” already exists.")
+            return
+
+        # Stored with ~ intact when it is under home, so the config stays
+        # portable between machines and readable to whoever opens it.
+        try:
+            shown = f"~/{target.relative_to(Path.home())}"
+        except ValueError:
+            shown = str(target)
+
+        item = self._add_group_item(
+            groups.Group(name=name, apps=[], path=shown))
         self.group_list.setCurrentItem(item)
         self._touch()
 
@@ -496,6 +561,10 @@ class Editor(QMainWindow):
         group = group if group is not None else self._current_group()
         if group is None:
             return
+        if group.is_folder:
+            # The rows showing are the folder's path, not app ids. Reading them
+            # back would put a directory name into `apps` and lose the path.
+            return
         group.apps = [self.app_list.item(row).data(ROLE)
                       for row in range(self.app_list.count())]
 
@@ -503,6 +572,11 @@ class Editor(QMainWindow):
         group = self._current_group()
         if group is None:
             self.statusBar().showMessage("Select a group first")
+            return
+        if group.is_folder:
+            self.statusBar().showMessage(
+                f"“{group.name}” shows a folder; put the file in the folder "
+                "instead")
             return
         present = {self.app_list.item(row).data(ROLE)
                    for row in range(self.app_list.count())}

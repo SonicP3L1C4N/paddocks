@@ -33,11 +33,19 @@ align = "center"
 # gap = 24
 # top = 48
 
-# Each group becomes one Quicklaunch widget. `apps` are .desktop ids, with or
-# without the extension, looked up in the usual application directories plus
-# the flatpak and snap export paths. The match is forgiving: "firefox" finds
-# firefox_firefox from a snap, "krita" finds org.kde.krita, and an id that
-# matches nothing is reported with the nearest candidates.
+# A group is either a list of apps or a folder, never both.
+#
+# `apps` are .desktop ids, with or without the extension, looked up in the
+# usual application directories plus the flatpak and snap export paths. The
+# match is forgiving: "firefox" finds firefox_firefox from a snap, "krita"
+# finds org.kde.krita, and an id that matches nothing is reported with the
+# nearest candidates. These become a Quicklaunch widget.
+#
+# `path` instead makes the group show a real folder, live -- add a file to the
+# folder and it appears on the desktop, with no `paddocks apply` in between.
+# These become a Folder View widget. A folder that does not exist yet is a
+# warning, not an error, so a path on an unmounted drive fills in when it
+# turns up.
 #
 # Group names must be unique -- they are the widget titles.
 
@@ -56,3 +64,17 @@ apps = ["org.kde.krita", "gimp"]
 [[group]]
 name = "Dev Tools"
 apps = ["code", "org.kde.konsole"]
+
+# A folder group. ~ and $VARS are expanded; keep the ~ rather than writing the
+# absolute path and the config stays portable between machines.
+[[group]]
+name = "Downloads"
+path = "~/Downloads"
+
+# Folder contents change under you, so there is no count to size from. `cells`
+# is how many icon slots to size the box for -- the folder scrolls past that
+# rather than growing. Defaults to 8.
+# [[group]]
+# name = "Screenshots"
+# path = "~/Pictures/Screenshots"
+# cells = 12

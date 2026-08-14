@@ -214,31 +214,61 @@ def add_quicklaunch_widgets(entries: list[tuple[str, list[str], int]]) -> list[i
     that two groups sharing a name cannot quietly lose one of them.
 
     Quicklaunch stores ``file://`` URLs pointing straight at the installed
-    ``.desktop`` files and renders them by application name. Folder View was
-    the obvious choice and is the wrong one: pointed at a plain ``file://``
-    folder it labels entries with their raw filenames; pointed at ``desktop:/``
-    it labels them correctly but launches nothing and never notices new files.
-    See the README.
+    ``.desktop`` files and renders them by application name. Folder View is the
+    obvious choice for this and the wrong one: pointed at a plain ``file://``
+    folder it labels ``.desktop`` entries with their raw filenames; pointed at
+    ``desktop:/`` it labels them correctly but launches nothing and never
+    notices new files. See the README.
+
+    Both failures are specific to ``.desktop`` files, which is why folder
+    groups can still use Folder View -- see `add_group_widgets`.
     """
-    payload = json.dumps([{"title": t, "urls": u, "rows": r} for t, u, r in entries])
-    # The script catches its own errors so that the ids created before the
-    # failure still come back and can be recorded by the caller.
+    return add_group_widgets(
+        [{"kind": "apps", "title": t, "urls": u, "rows": r} for t, u, r in entries]
+    )
+
+
+def add_group_widgets(specs: list[dict]) -> list[int]:
+    """Create the widgets for a whole config, in order, mixing both kinds.
+
+    Each spec is ``{"kind": "apps", "title", "urls", "rows"}`` or
+    ``{"kind": "folder", "title", "url"}``. Order is the caller's order, so the
+    ids line up with the boxes the layout solved -- which is why both kinds go
+    through one script rather than a pass per kind.
+
+    Folder View is the right widget *here* and the wrong one for launchers, for
+    the reasons in `add_quicklaunch_widgets`: those failures are specific to
+    ``.desktop`` files and to the ``desktop:/`` worker. Pointed at an ordinary
+    directory over ``file://`` it lists correctly, launches, and picks up
+    changes to the directory as they happen.
+    """
+    payload = json.dumps(specs)
     out = run_script(f"""
-        var entries = {payload};
+        var specs = {payload};
         var d = desktops()[0];
         var out = [];
         var err = "";
         try {{
-            for (var i = 0; i < entries.length; i++) {{
-                var w = d.addWidget("org.kde.plasma.quicklaunch");
-                w.currentConfigGroup = ["General"];
-                w.writeConfig("launcherUrls", entries[i].urls);
-                w.writeConfig("title", entries[i].title);
-                w.writeConfig("showLauncherNames", true);
-                w.writeConfig("enablePopup", false);
-                // Without this Quicklaunch flows everything into one row and
-                // shrinks the icons to fit, so icon size varies per group.
-                w.writeConfig("maxSectionCount", entries[i].rows);
+            for (var i = 0; i < specs.length; i++) {{
+                var s = specs[i];
+                var w;
+                if (s.kind === "folder") {{
+                    w = d.addWidget("org.kde.plasma.folder");
+                    w.currentConfigGroup = ["General"];
+                    w.writeConfig("url", s.url);
+                    // 3 is "custom title"; without it the widget labels itself
+                    // with the folder's own name and the group name is lost.
+                    w.writeConfig("labelMode", 3);
+                    w.writeConfig("labelText", s.title);
+                }} else {{
+                    w = d.addWidget("org.kde.plasma.quicklaunch");
+                    w.currentConfigGroup = ["General"];
+                    w.writeConfig("launcherUrls", s.urls);
+                    w.writeConfig("title", s.title);
+                    w.writeConfig("showLauncherNames", true);
+                    w.writeConfig("enablePopup", false);
+                    w.writeConfig("maxSectionCount", s.rows);
+                }}
                 w.reloadConfig();
                 out.push(w.id);
             }}
@@ -259,9 +289,9 @@ def add_quicklaunch_widgets(entries: list[tuple[str, list[str], int]]) -> list[i
 
     if error:
         raise WidgetCreationError(f"creating widgets failed: {error}", ids)
-    if len(ids) != len(entries):
+    if len(ids) != len(specs):
         raise WidgetCreationError(
-            f"expected {len(entries)} widgets, created {len(ids)}", ids)
+            f"expected {len(specs)} widgets, created {len(ids)}", ids)
     return ids
 
 

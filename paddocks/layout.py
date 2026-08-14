@@ -17,6 +17,17 @@ from dataclasses import dataclass
 ARRANGEMENTS = ("row", "grid", "column")
 ALIGNMENTS = ("center", "left")
 
+# Folder View will not render below roughly this, whatever geometry it is given
+# -- it clamps internally and the box ends up mismatched with what was written.
+# Measured by writing progressively smaller ItemGeometries and reading back what
+# survived a plasmashell restart.
+FOLDER_MIN_WIDTH = 400
+FOLDER_MIN_HEIGHT = 304
+
+# A folder's contents change under you, so there is no count to size from. This
+# is the nominal capacity a folder group is sized for, overridable per group.
+FOLDER_CELLS = 8
+
 
 @dataclass
 class Metrics:
@@ -44,11 +55,17 @@ class Box:
     rows: int = 1   # Quicklaunch maxSectionCount: how many icon rows to wrap into
 
 
-def size_for(count: int, m: Metrics) -> tuple[int, int, int]:
+def size_for(count: int, m: Metrics, folder: bool = False) -> tuple[int, int, int]:
     """Size a group to hold `count` icons. Returns (width, height, rows).
 
     Quicklaunch flows icons into a single row unless maxSectionCount caps the
     row count, so the solver has to hand that number to the widget as well.
+
+    `folder` sizes a Folder View instead: same grid arithmetic so folder groups
+    share the visual rhythm of app groups, but floored at the size Folder View
+    refuses to go below. `count` is then a nominal capacity rather than a real
+    item count -- the folder decides for itself what it holds, and scrolls when
+    it holds more.
     """
     columns = max(1, min(m.max_columns, count))
     rows = max(1, math.ceil(count / columns))
@@ -59,12 +76,18 @@ def size_for(count: int, m: Metrics) -> tuple[int, int, int]:
     columns = math.ceil(count / rows)
     w = columns * m.cell + m.pad_x
     h = m.header + rows * m.cell + m.pad_y
+    if folder:
+        return max(w, FOLDER_MIN_WIDTH), max(h, FOLDER_MIN_HEIGHT), rows
     return max(w, m.min_width), max(h, m.min_height), rows
 
 
-def solve(groups: list[tuple[str, int]], screen: tuple[int, int],
+def solve(groups: list[tuple], screen: tuple[int, int],
           m: Metrics, arrangement: str = "row") -> list[Box]:
-    """groups: [(name, item_count)]. Returns placed boxes."""
+    """groups: [(name, item_count)] or [(name, item_count, is_folder)].
+
+    The two-item form is the app-group case and stays the whole story for
+    callers that have no folders.
+    """
     if arrangement == "row":
         return _flow(groups, screen, m, columns=None)
     if arrangement == "grid":
@@ -87,8 +110,10 @@ def _flow(groups, screen, m: Metrics, columns: int | None) -> list[Box]:
     rows_of_boxes: list[list[Box]] = []
 
     x, y, row_h, in_row = m.margin, m.top, 0, 0
-    for name, count in groups:
-        w, h, rows = size_for(count, m)
+    for entry in groups:
+        name, count = entry[0], entry[1]
+        folder = entry[2] if len(entry) > 2 else False
+        w, h, rows = size_for(count, m, folder=folder)
         wrap = (columns is not None and in_row >= columns) or \
                (columns is None and in_row > 0 and x + w > limit)
         if wrap:

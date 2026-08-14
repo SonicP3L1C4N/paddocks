@@ -74,6 +74,27 @@ apps = [
 ]
 ```
 
+### Folder groups
+
+Give a group a `path` instead of `apps` and it shows that folder, live — drop a
+file in and it appears on the desktop, with no `paddocks apply` in between.
+
+```toml
+[[group]]
+name = "Downloads"
+path = "~/Downloads"
+```
+
+`~` and `$VARS` are expanded, and a path that does not exist yet is a warning
+rather than an error, so a folder on a drive you have not mounted fills in when
+it turns up. A folder's contents change under you, so there is no count to size
+it from: `cells = 12` sets how many icon slots to size the box for, defaulting
+to 8, and the folder scrolls past that rather than growing.
+
+A group is one thing or the other — setting both `apps` and `path` is an error
+rather than a guess. Folder groups are Folder View widgets, which is the right
+widget for files and the wrong one for launchers, for the reasons in gotcha #1.
+
 ### The editor
 
 `paddocks edit` does the same job in a window: groups on the left, the selected
@@ -82,7 +103,10 @@ group's applications in the middle, everything installed on the right.
 ![The editor: groups, group contents, and the installed application list](docs/editor.png)
 
 Drag within either list to reorder, drag a group up or down to change where it
-lands on screen, double-click an application to add or remove it. **Preview**
+lands on screen, double-click an application to add or remove it. **Add folder**
+makes a folder group instead — pick a directory and it is stored with `~` intact
+when it is under your home. Selecting one shows the folder it points at rather
+than an app list, since Plasma reads its contents live. **Preview**
 shows the computed layout without touching anything; **Save & Apply** writes the
 config and rebuilds the desktop. An id that no longer resolves is shown in red
 and kept rather than quietly dropped — the application may only be temporarily
@@ -137,7 +161,8 @@ cloned this — move the clone and run it again.
 | Grouped, titled launcher panels | ✅ |
 | Click to launch, drag to add | ✅ |
 | Translucent backgrounds | ✅ see caveats |
-| Arbitrary files and folders in a group | ❌ launchers only |
+| A group showing a folder, live | ✅ `path = "~/Downloads"` |
+| Files and launchers mixed in one group | ❌ a group is one or the other |
 | Multiple desktop pages | ✅ use Plasma Activities (not managed here) |
 | Roll-up / collapse a panel | ❌ no equivalent in Plasma |
 | Double-click desktop to hide icons | ❌ no equivalent |
@@ -148,7 +173,10 @@ cloned this — move the clone and run it again.
 None of this is documented, and most of it fails without an error message.
 
 <details>
-<summary><b>1. Folder View looks like the right widget, and is a dead end</b></summary>
+<summary><b>1. Folder View looks like the right widget for launchers, and is a dead end</b></summary>
+
+This is about **launchers**. For real files, Folder View is the right answer and
+is what folder groups use — every failure below is specific to `.desktop` files.
 
 The obvious build is a Folder View per group, pointed at a folder of `.desktop`
 files. Both available URL schemes fail, in different ways:
@@ -286,8 +314,9 @@ fall back to `default` for artwork, so the file to copy and patch is usually
 internals are not a stable interface. A Plasma point release can change the
 format; if panels land in the wrong place after an update, check that first.
 
-**Groups hold application launchers, not files.** If you want a group of
-documents or folders, that is Folder View's job, with the caveats in gotcha #1.
+**A group is launchers or a folder, not both.** Mixing them in one widget is
+not something Plasma offers — Quicklaunch holds launcher URLs, Folder View
+shows a directory. Use two groups.
 
 **`translucency` shadows system themes.** While the shadow copies exist, distro
 updates to those themes stop reaching you. That is why it is a separate command

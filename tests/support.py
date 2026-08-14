@@ -74,6 +74,14 @@ class FakePlasma:
             return list(self._widget_ids)
         return [100 + i for i in range(len(entries))]
 
+    def add_group_widgets(self, specs):
+        self._record("add_group_widgets")
+        # Kept so tests can assert which plugin each group asked for.
+        self.specs = list(specs)
+        if self._widget_ids is not None:
+            return list(self._widget_ids)
+        return [100 + i for i in range(len(specs))]
+
     def remove_widgets(self, applet_ids):
         self._record("remove_widgets")
         return len(applet_ids)
