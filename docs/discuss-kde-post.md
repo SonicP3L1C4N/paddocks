@@ -16,10 +16,19 @@ The account was auto-held first — Discourse caps trust-level-0 users at two li
 per post and this one had eight, all but one of them to KDE's own Bugzilla. A
 moderator approved it.
 
-**Known defect in the posted version:** it went up without backticks around
+**Defect in post #1, corrected in post #2:** it went up without backticks around
 `ItemGeometries-<W>x<H>`, so Discourse stripped `<W>` and `<H>` as unknown HTML
-tags and the line reads `ItemGeometries-x`. Needs a post edit. The bug numbers
-posted as plain text rather than links, too.
+tags and the line renders as `ItemGeometries-x`. Editing was not an option — at
+trust level 0 the post carries link, bookmark, delete and reply, but no pencil —
+so a follow-up reply carries the corrected token instead. That reply is
+deliberately link-free: TL0 is what got the account held in the first place, and
+seven Bugzilla links in a reply would risk tripping the same filter.
+
+The bug numbers in post #1 are plain text rather than links, for the same reason.
+Worth adding once the account reaches TL1 and editing unlocks.
+
+**Lesson for any future Discourse post:** anything shaped like an HTML tag needs
+backticks, and the composer preview will not show you the problem.
 
 **Category:** Development (add a `plasma` tag). Not Help — this is not a support
 request, and posting it there would get it answered rather than discussed.
