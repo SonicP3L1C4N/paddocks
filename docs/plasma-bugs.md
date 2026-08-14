@@ -163,64 +163,68 @@ noted `SetGeometry` appears to be empty in the source and offered to attempt a
 fix.
 
 What it does **not** yet record is the failure mode, which is the expensive part.
-Post the rest of this as a comment there.
+Paste the block below as a comment there.
 
-### The silent-failure detail worth adding
+Written as plain text, not the bug template — Bugzilla comments do not render
+markdown, and a ten-year-old confirmed report does not need its own request
+restated back at it. It opens on what is new, answers the design question raised
+in the thread, and closes with an offer to test.
 
-`desktop.addWidget()` works, but there is no working way to position the widget
-it returns. The documented-looking form throws, and the form that does not throw
-is silently ignored. Reading the property back reports the auto-placed geometry,
-which makes it look as though Plasma accepted the value and then overrode it —
-rather than never having applied it at all.
+### Comment to post on 362511
 
-### STEPS TO REPRODUCE
+```text
+Adding a data point from writing a desktop layout tool against this, plus the
+failure mode, which I don't think is recorded here yet.
 
-Run via `qdbus6 org.kde.plasmashell /PlasmaShell evaluateScript '<script>'`:
+The gap is not only that geometry is unavailable -- it is that both ways of
+attempting it fail without saying so.
 
-```js
-var d = desktops()[0];
-var w = d.addWidget("org.kde.plasma.quicklaunch");
-w.geometry = Qt.rect(40, 40, 520, 420);   // ReferenceError: Qt is not defined
+    var d = desktops()[0];
+    var w = d.addWidget("org.kde.plasma.quicklaunch");
+    w.geometry = Qt.rect(40, 40, 520, 420);
+
+throws "ReferenceError: Qt is not defined". The Qt object is not exposed in the
+scripting engine's global scope, so the form the API's shape implies cannot even
+be attempted.
+
+    w.geometry = {x: 40, y: 40, width: 520, height: 420};
+    print(w.geometry.x);   // not 40
+
+produces no error at all. The assignment is discarded, and reading the property
+back returns the auto-placed position. That read-back is what costs the time: it
+looks exactly as though Plasma accepted the value and then re-laid out over the
+top of it, so you go hunting for a layout policy to opt out of rather than
+concluding the setter is a no-op. It is consistent with the observation above
+that SetGeometry appears to be empty.
+
+Even if implementing the setter is not on the cards, having the assignment raise
+instead of silently discarding would remove most of the cost here.
+
+On the suggestion above of passing position arguments to addWidget(): as an API
+for tools that would only solve half of it. Layout tools re-place widgets that
+already exist, not only ones they are creating -- on every config change, and
+again when the screen resolution changes, since the ItemGeometries key name
+changes with it. Creation-time parameters would still leave "move this widget"
+unavailable.
+
+The only route that works today is to stop plasmashell, write
+ItemGeometries-<W>x<H> under [Containments][<id>] in
+plasma-org.kde.plasma.desktop-appletsrc in the Applet-<id>:x,y,w,h,0; format,
+and start the shell again. plasmashell rewrites that file on exit, so the write
+cannot happen while it is running. That is a private format behind a shell
+restart, for a tool that only wants to position a widget.
+
+Adjacent, in case it saves anyone else the detour: evaluateScript only reliably
+returns print() output. A bare trailing expression usually comes back empty.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
+
+Happy to test a patch against this if one appears.
 ```
-
-then:
-
-```js
-var d = desktops()[0];
-var w = d.addWidget("org.kde.plasma.quicklaunch");
-w.geometry = {x: 40, y: 40, width: 520, height: 420};   // no error
-print(w.geometry.x);                                     // not 40
-```
-
-### OBSERVED RESULT
-
-- `Qt.rect()` — `ReferenceError: Qt is not defined`. The `Qt` object is not
-  exposed in the scripting engine's global scope.
-- Object-literal assignment — no error, no effect, and the read-back reports the
-  auto-placed position.
-
-The only way to place a widget is to stop plasmashell and hand-write
-`ItemGeometries-<W>x<H>` under `[Containments][<id>]` in
-`plasma-org.kde.plasma.desktop-appletsrc`, in the undocumented
-`Applet-<id>:x,y,w,h,0;` format. That file is rewritten by plasmashell on exit,
-so the write has to happen while the shell is stopped.
-
-### EXPECTED RESULT
-
-Either `widget.geometry` is assignable from scripting (ideally with `Qt.rect()`
-available, since that is the form the API's shape implies), or the assignment
-raises so the caller knows it did not take. Silently discarding the write while
-reporting a different value back is the worst of the three outcomes.
-
-### ADDITIONAL INFORMATION
-
-Related, possibly worth splitting out: `evaluateScript` only reliably returns
-`print()` output. A bare trailing expression usually comes back as an empty
-string, so scripts have to be written to print rather than evaluate.
-
-Layout scripting is the entire basis of desktop-organiser tooling. Without it,
-every such tool is pushed into editing `appletsrc` directly — i.e. onto private
-format that a point release can change.
 
 ---
 
