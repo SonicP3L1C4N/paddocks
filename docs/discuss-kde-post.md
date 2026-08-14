@@ -1,0 +1,94 @@
+<!--
+SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+
+SPDX-License-Identifier: MIT
+-->
+
+# discuss.kde.org post — draft
+
+Companion to [plasma-bugs.md](plasma-bugs.md), which is the record of the six
+reports this post points at. **Not posted yet.** Add the thread URL here once it
+goes up.
+
+**Category:** Development (add a `plasma` tag). Not Help — this is not a support
+request, and posting it there would get it answered rather than discussed.
+
+**Title:** Grouped desktop launcher panels on Plasma 6, and five things that fail silently
+
+Discourse renders markdown, so the formatting below is intended — paste as-is.
+
+---
+
+I've spent the last few days building a small tool that groups desktop launchers
+into titled panels on Plasma 6 — the kind of thing desktop-organiser tools do on
+Windows. It's called Paddocks: a TOML file describes the groups, and it builds
+them out of stock Quicklaunch widgets. https://github.com/SonicP3L1C4N/paddocks
+
+I'm not posting to advertise it. Plasma could already do nearly all of this — the
+problem was that the route there is undocumented, and several steps along it fail
+*silently*. I've filed what I found, and there's a design question at the end
+that I'd value opinions on.
+
+## What I filed
+
+- **[524242](https://bugs.kde.org/show_bug.cgi?id=524242)** — `desktop:/` subpaths
+  list correctly, but launching a `.desktop` file through one exits 0 and starts
+  nothing. A Folder View pointed at `desktop:/Apps` renders a perfect grid of
+  inert icons.
+- **[524243](https://bugs.kde.org/show_bug.cgi?id=524243)** — Folder View at a
+  `file://` URL labels `.desktop` files by filename rather than `Name=`, while
+  `desktop:/` labels the same files correctly.
+- **[524244](https://bugs.kde.org/show_bug.cgi?id=524244)** —
+  `plasma-apply-desktoptheme` reports success and writes `plasmarc` while
+  `AutomaticLookAndFeel` silently overrides the result.
+- **[524245](https://bugs.kde.org/show_bug.cgi?id=524245)** — the theme pixmap
+  cache is keyed by theme name only, so editing a theme in place never
+  invalidates it.
+- **[524246](https://bugs.kde.org/show_bug.cgi?id=524246)** —
+  `translucent/widgets/background.svgz` ships in every theme and appears to be
+  referenced by nothing.
+- **[524247](https://bugs.kde.org/show_bug.cgi?id=524247)** — wishlist: no way to
+  set the opacity of a widget's background frame.
+
+I also added a comment to **[362511](https://bugs.kde.org/show_bug.cgi?id=362511)**
+(setting widget geometry from the scripting API, open since 2016) describing the
+failure mode: `Qt` is undefined so `Qt.rect()` throws, assigning a plain object is
+silently discarded, and reading the property back returns the auto-placed
+position — so it looks as though Plasma accepted the value and then re-laid out
+over the top of it.
+
+## The design question
+
+That last one is why I'm posting rather than only filing. Because widget geometry
+can't be set from scripting, the only way to place a widget is to stop
+plasmashell, write `ItemGeometries-<W>x<H>` into
+`plasma-org.kde.plasma.desktop-appletsrc`, and start the shell again. That's a
+private format behind a shell restart. Anything built in this space is fragile by
+construction — a point release can change the format and break every tool relying
+on it.
+
+So the question: **is grouped desktop organisation something Plasma wants
+natively?** And if it is, what's the right shape — a containment feature, a
+widget, or simply making the layout scripting API able to place things, so
+external tools stop needing the back door?
+
+I'd genuinely rather this tool became unnecessary than adopted. If the answer is
+"that belongs in the containment", that's a better outcome than me maintaining a
+workaround indefinitely.
+
+## Caveats, so nobody wastes time
+
+Tested on exactly one machine: Plasma 6.6.6, Kubuntu 26.04, Wayland, a single
+3440×1440 screen. Multi-monitor is unhandled. It's Python and uses no KDE
+Frameworks — it talks to Plasma over D-Bus and config files.
+
+I used Claude Code throughout this: working out Plasma's config internals,
+chasing down the failure modes above, and writing Paddocks itself. Everything in
+those reports is behaviour I reproduced on the machine described above — the
+commands in them are commands I ran, and the observed results are what I saw.
+Where I wasn't certain, the report says so rather than asserting: 524243 states
+outright that it may be intentional and should be closed NOTABUG if so. Flagging
+it because I'd rather be up front than have anyone wonder.
+
+Happy to test patches on any of the above; I have a setup that reproduces all of
+it.
