@@ -7,8 +7,19 @@ SPDX-License-Identifier: MIT
 # discuss.kde.org post — draft
 
 Companion to [plasma-bugs.md](plasma-bugs.md), which is the record of the six
-reports this post points at. **Not posted yet.** Add the thread URL here once it
-goes up.
+reports this post points at.
+
+**Posted 2026-08-14:**
+https://discuss.kde.org/t/grouped-desktop-launcher-panels-on-plasma-6-and-five-things-that-fail-silently/49388
+
+The account was auto-held first — Discourse caps trust-level-0 users at two links
+per post and this one had eight, all but one of them to KDE's own Bugzilla. A
+moderator approved it.
+
+**Known defect in the posted version:** it went up without backticks around
+`ItemGeometries-<W>x<H>`, so Discourse stripped `<W>` and `<H>` as unknown HTML
+tags and the line reads `ItemGeometries-x`. Needs a post edit. The bug numbers
+posted as plain text rather than links, too.
 
 **Category:** Development (add a `plasma` tag). Not Help — this is not a support
 request, and posting it there would get it answered rather than discussed.
