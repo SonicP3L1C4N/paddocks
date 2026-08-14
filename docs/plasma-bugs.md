@@ -34,7 +34,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 |---|---|---|---|---|
 | 1 | plasmashell | `desktop:/ IOWorker` | normal | **filed — [524242](https://bugs.kde.org/show_bug.cgi?id=524242)**, REPORTED |
 | 2 | plasmashell | `Folder View widget` | normal | **filed — [524243](https://bugs.kde.org/show_bug.cgi?id=524243)**, REPORTED |
-| 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | not posted |
+| 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | **posted** as comment #5, 2026-08-14 |
 | 4 | plasmashell | `general` | normal | not filed |
 | 5 | frameworks-ksvg | `General` | minor | not filed |
 | 6 | plasmashell | `Theme - Breeze` | minor | optional, see note |
@@ -235,54 +235,79 @@ Happy to test a patch against this if one appears.
 `general` is where the other `plasma-apply-*` reports live (bugs 472792, 511377,
 507681). There is no dedicated component for these tools.
 
-### SUMMARY
+**Suggested title:** `plasma-apply-desktoptheme reports success while AutomaticLookAndFeel silently overrides the theme`
 
-On systems shipping `AutomaticLookAndFeel=true` in `kdeglobals` — Kubuntu among
-them — the look-and-feel package re-asserts its own desktop theme after
-`plasma-apply-desktoptheme` runs. The command exits 0, prints a success message,
-and `plasmarc` records the requested theme, but Plasma continues rendering the
-previous one. Nothing anywhere reports the conflict.
+The body below is plain text for the same reason as #3 — Bugzilla does not render
+markdown. The one framing risk here is being closed as a Kubuntu packaging
+problem, so the summary says up front that both the setting and the tool are
+KDE's.
 
-### STEPS TO REPRODUCE
+### Report body to paste
 
-1. On a system with `AutomaticLookAndFeel=true` in `~/.config/kdeglobals`
-   (default on Kubuntu), create or install a custom desktop theme.
-2. `plasma-apply-desktoptheme MyCustomTheme`
-3. Observe the exit status and the message.
-4. `kreadconfig6 --file plasmarc --group Theme --key name`
-5. Look at the actual desktop.
+```text
+SUMMARY
 
-### OBSERVED RESULT
+On systems with AutomaticLookAndFeel=true in kdeglobals, the active look-and-feel
+package re-asserts its own desktop theme after plasma-apply-desktoptheme has run.
+The command exits 0 and reports success, and plasmarc records the requested
+theme, but Plasma goes on rendering the previous one. Nothing reports the
+conflict.
 
-Exit status 0, success reported, `plasmarc` shows `MyCustomTheme`, and the
-desktop renders the look-and-feel package's theme. The only observable signal
-that the requested theme was discarded is the pixmap cache mtimes:
+Kubuntu ships AutomaticLookAndFeel=true by default, which is where I hit this,
+but the setting and the tool are both KDE's -- any system automatically applying
+a look-and-feel package will behave the same way.
 
+STEPS TO REPRODUCE
+
+1. On a system with AutomaticLookAndFeel=true in ~/.config/kdeglobals, install or
+   create a custom desktop theme.
+2. Run: plasma-apply-desktoptheme MyCustomTheme
+3. Note the exit status and the message printed.
+4. Run: kreadconfig6 --file plasmarc --group Theme --key name
+5. Look at the desktop.
+
+OBSERVED RESULT
+
+Exit status 0, success reported, and plasmarc shows MyCustomTheme -- while the
+desktop carries on rendering the look-and-feel package's theme.
+
+The only observable signal that the requested theme was discarded is the pixmap
+cache mtimes:
+
+    $ ls -la --time-style=+%H:%M:%S ~/.cache/plasma_theme_*.kcache
+    ... 08:38:36 plasma_theme_MyCustomTheme.kcache      # applied here
+    ... 08:40:15 plasma_theme_kubuntu-light.kcache      # still being used
+
+EXPECTED RESULT
+
+Either the applied theme sticks, or the tool detects that AutomaticLookAndFeel is
+enabled and warns that the requested theme will be overridden by the active
+look-and-feel package, exiting non-zero.
+
+A tool whose only job is to apply a setting should not report success when a
+detectable configuration guarantees that setting will be discarded. The state it
+leaves behind is worse than a plain failure, because plasmarc now disagrees with
+the screen -- so the obvious next diagnostic confirms the theme was applied, and
+sends you looking anywhere but at the tool.
+
+ADDITIONAL INFORMATION
+
+This is not a duplicate of bug 507681 ("The plasma-apply-desktoptheme cli tool
+does not work anymore"), which was a missing KConfigWatcher notify flag, reported
+against 6.4.3 and fixed in 6.4.5. Different cause, and still present in 6.6.6.
+
+The workaround, for anyone who lands here: do not introduce a new theme id at
+all. Copy the active theme into ~/.local/share/plasma/desktoptheme/ under its
+original name -- the user data dir shadows /usr/share -- and patch the copy. It
+has to be done for the light and the dark variant both, or the styling vanishes
+when the day/night schedule flips.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
 ```
-$ ls -la --time-style=+%H:%M:%S ~/.cache/plasma_theme_*.kcache
-... 08:38:36 plasma_theme_MyCustomTheme.kcache      # applied here
-... 08:40:15 plasma_theme_kubuntu-light.kcache      # still being used
-```
-
-### EXPECTED RESULT
-
-One of:
-
-- the command applies the theme and it sticks; or
-- the command warns that `AutomaticLookAndFeel` is enabled and the requested
-  theme will be overridden by the active look-and-feel package, and exits
-  non-zero.
-
-A CLI tool whose entire job is to apply a setting should not report success when
-a known, detectable configuration guarantees the setting will be discarded.
-
-### ADDITIONAL INFORMATION
-
-The workaround is to avoid introducing a new theme id at all: copy the active
-theme into `~/.local/share/plasma/desktoptheme/` **under its original name** (the
-user data dir shadows `/usr/share`) and patch the copy. This has to be done for
-both the light and dark variants or the styling disappears when the day/night
-schedule flips.
 
 ---
 
