@@ -19,7 +19,7 @@ panels; Linux has none. Plasma can already do most of it, but the pieces are
 undocumented and several fail *silently*. Paddocks is the working setup, plus —
 more usefully — the five things that otherwise cost an afternoon each.
 
-![Six groups laid out across the top of a 3440x1440 desktop](docs/screenshot.png)
+![Seven groups laid out across the top of a 3440x1440 desktop](docs/screenshot.png)
 
 ## Install
 
@@ -50,7 +50,7 @@ Each group becomes a titled Quicklaunch widget, positioned and sized
 automatically from a small TOML file. Clicking launches; dragging an application
 onto a group adds it.
 
-![A single group close up: custom title, application names, translucent background](docs/detail.png)
+![A single group close up: custom title, application names, and the wallpaper showing through the translucent background](docs/detail.png)
 
 ```
 paddocks discover > ~/.config/paddocks.toml   # every installed app, pre-grouped
