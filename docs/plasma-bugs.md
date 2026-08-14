@@ -383,11 +383,16 @@ with no user-visible symptom. Filed anyway, which was the better call: it gives
 
 **Filed from the pre-conversion markdown draft**, so its ADDITIONAL INFORMATION
 section is the drafting note arguing against filing it, rather than report
-content. Comment 0 is not editable by the reporter on KDE Bugzilla, so the fix is
-the follow-up below. The paste block further down is the corrected version and
-was never posted.
+content. Comment 0 is not editable by the reporter on KDE Bugzilla, so it was
+retracted in the follow-up below — **posted as comment #1 at 03:57 UTC**, four
+minutes after the report.
 
-### Follow-up comment to post on 524246
+Net effect: the bug now carries the full cache-clearing step and the version
+block, neither of which was in the description, so it reads better than a clean
+filing of the original draft would have. The paste block further down is the
+corrected body, kept for the record; it was never posted as such.
+
+### Follow-up comment, posted as comment #1
 
 ```text
 The ADDITIONAL INFORMATION paragraph above is a stray note from my drafting file,
