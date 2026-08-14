@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Optional: make applet backgrounds more transparent.
 
 This is the fragile half of the project and is deliberately separate from the

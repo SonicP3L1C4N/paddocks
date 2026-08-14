@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Putting Paddocks in the application menu.
 
 Deliberately free of any Qt import: installing the menu entry is a file copy,

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Working out where each group goes.
 
 The numbers below are not guesses -- they were derived by asking Plasma for a

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Regressions for the shell-restart bug.
 
 `start()` used to spawn plasmashell as a plain child process. A child inherits

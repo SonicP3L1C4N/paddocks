@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Finding installed applications.
 
 Two jobs share one index of the system's ``.desktop`` files: turning the app

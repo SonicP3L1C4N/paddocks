@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Reading and writing the TOML.
 
 Every one of these mistakes used to be silent: unknown settings were filtered

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Regressions for the four issues found in the security pass.
 
 Each of these was a real defect at some point; the point of the file is that

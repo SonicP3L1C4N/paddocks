@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """The .desktop index: matching config ids to installed applications.
 
 Built against fixture directories rather than the real system, so the results

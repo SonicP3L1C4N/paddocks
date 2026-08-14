@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """The `paddocks` command line.
 
 Lives in the package rather than in bin/ so that an installed copy can expose

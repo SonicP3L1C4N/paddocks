@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """A small Qt window for editing the config.
 
 PyQt6 is imported here and nowhere else, so the command line keeps working on

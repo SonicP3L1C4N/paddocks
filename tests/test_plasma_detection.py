@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """How `is_running` decides there is a shell.
 
 It used to be `pgrep -x plasmashell`, which answers a different question than

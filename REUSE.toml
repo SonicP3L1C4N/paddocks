@@ -1,0 +1,21 @@
+version = 1
+SPDX-PackageName = "paddocks"
+SPDX-PackageSupplier = "Gary Bissett <gary.bissett@gmail.com>"
+SPDX-PackageDownloadLocation = "https://github.com/SonicP3L1C4N/paddocks"
+
+# Binary artwork and screenshots cannot carry a comment header. The icons are
+# original work; the screenshots are of this tool running on the author's
+# desktop.
+[[annotations]]
+path = ["icons/**", "docs/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Gary Bissett <gary.bissett@gmail.com>"
+SPDX-License-Identifier = "MIT"
+
+# The root LICENSE is kept alongside LICENSES/MIT.txt because pyproject.toml
+# points `license-files` at it and GitHub and PyPI both key off that path.
+[[annotations]]
+path = "LICENSE"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Gary Bissett <gary.bissett@gmail.com>"
+SPDX-License-Identifier = "MIT"

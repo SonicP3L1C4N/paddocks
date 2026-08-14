@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+
+SPDX-License-Identifier: MIT
+-->
+
 <h1>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="icons/paddocks-dark-64.png">

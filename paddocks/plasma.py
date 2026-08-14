@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """Talking to a running plasmashell.
 
 Everything here works around two facts that cost a lot of time to discover:

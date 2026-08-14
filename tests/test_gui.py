@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """The editor, headless.
 
 Skipped entirely when PyQt6 is missing, so the suite still runs on a machine

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """`strict` as a config setting, and how it combines with the flag.
 
 The point of having it in the config is that a hand-written .desktop file

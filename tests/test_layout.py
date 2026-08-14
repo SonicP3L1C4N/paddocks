@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
 """The solver. Pure arithmetic, so it is cheap to pin down exactly."""
 
 from __future__ import annotations
