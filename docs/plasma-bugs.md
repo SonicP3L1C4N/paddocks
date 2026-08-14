@@ -53,8 +53,7 @@ missing KConfigWatcher notify flag, reported in 6.4.3 and fixed in 6.4.5.
 — status REPORTED, assigned to Plasma Bugs List.
 
 **Product:** plasmashell · **Component:** `desktop:/ IOWorker` ("Only for bugs in
-the desktop:/ KIO Worker") · **Severity:** normal · **Version:** 6.6.0 (the
-nearest the version list offers; the exact 6.6.6 is in the report body)
+the desktop:/ KIO Worker") · **Severity:** normal · **Version:** 6.6.6
 
 The component has six bugs in it, all about properties dialogs, symlinks and
 drag-and-drop. Nothing on execution — this is not a duplicate.
