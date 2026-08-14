@@ -35,7 +35,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 1 | plasmashell | `desktop:/ IOWorker` | normal | **filed — [524242](https://bugs.kde.org/show_bug.cgi?id=524242)**, REPORTED |
 | 2 | plasmashell | `Folder View widget` | normal | **filed — [524243](https://bugs.kde.org/show_bug.cgi?id=524243)**, REPORTED |
 | 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | **posted** as comment #5, 2026-08-14 |
-| 4 | plasmashell | `general` | normal | not filed |
+| 4 | plasmashell | `general` | normal | **filed — [524244](https://bugs.kde.org/show_bug.cgi?id=524244)**, REPORTED |
 | 5 | frameworks-ksvg | `General` | minor | not filed |
 | 6 | plasmashell | `Theme - Breeze` | minor | optional, see note |
 | 7 | plasmashell | `Containment` | wishlist | not filed |
@@ -230,12 +230,14 @@ Happy to test a patch against this if one appears.
 
 ## 4. `plasma-apply-desktoptheme` reports success while `AutomaticLookAndFeel` silently overrides it
 
-**Product:** plasmashell · **Component:** `general` · **Severity:** normal
+**Filed 2026-08-14 as [bug 524244](https://bugs.kde.org/show_bug.cgi?id=524244)**
+— status REPORTED, assigned to Plasma Bugs List.
+
+**Product:** plasmashell · **Component:** `general` · **Severity:** normal ·
+**Version:** 6.6.6
 
 `general` is where the other `plasma-apply-*` reports live (bugs 472792, 511377,
 507681). There is no dedicated component for these tools.
-
-**Suggested title:** `plasma-apply-desktoptheme reports success while AutomaticLookAndFeel silently overrides the theme`
 
 The body below is plain text for the same reason as #3 — Bugzilla does not render
 markdown. The one framing risk here is being closed as a Kubuntu packaging
