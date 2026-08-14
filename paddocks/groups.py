@@ -204,10 +204,9 @@ def _record(state: dict, names: list[str], ids: list[int]) -> None:
 def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> None:
     """Build the groups. `strict` of None defers to the config's setting.
 
-    The command line wins when it says anything at all, so `--no-strict` is a
-    way past a config that has it on, and the failure message names which of
-    the two turned it on -- a config setting is not visible in the command the
-    user just typed.
+    The command line wins whenever it says anything, so `--no-strict` gets past
+    a config that has it on, and the failure message names which of the two
+    turned it on -- a config setting is not visible in the command just typed.
     """
     if strict is None:
         strict, why = cfg.strict, "strict = true is set in the config"
@@ -359,11 +358,11 @@ def dump_config(cfg: Config, index: apps.Index | None = None,
                 header: list[str] | None = None) -> str:
     """Serialise a config back to TOML.
 
-    Python has no TOML writer in the standard library, and the round-trip
-    libraries that preserve comments are a dependency this does not otherwise
-    need, so the format is canonical: settings that differ from the defaults,
-    then the groups in order, each id annotated with its application name.
-    Hand-written comments do not survive an edit made through `paddocks edit`.
+    Python has no standard-library TOML writer, and the round-trip libraries
+    that preserve comments are a dependency nothing else here needs, so the
+    format is canonical: non-default settings, then the groups in order, each
+    id annotated with its application name. Hand-written comments do not
+    survive an edit through `paddocks edit`.
     """
     lines = list(header or [])
     if lines:

@@ -52,10 +52,10 @@ def size_for(count: int, m: Metrics) -> tuple[int, int, int]:
     """
     columns = max(1, min(m.max_columns, count))
     rows = max(1, math.ceil(count / columns))
-    # Quicklaunch balances icons evenly across the rows it is given: 6 icons in
-    # 2 rows renders 3+3, not 4+2. Size the box to the balanced column count or
-    # it comes out too wide and Quicklaunch scales the icons up to fill it,
-    # leaving every group a slightly different icon size.
+    # Quicklaunch balances icons across the rows it is given: 6 in 2 rows
+    # renders 3+3, not 4+2. Size the box to the balanced column count, or it
+    # comes out too wide, Quicklaunch scales the icons up to fill it, and every
+    # group ends up a different icon size.
     columns = math.ceil(count / rows)
     w = columns * m.cell + m.pad_x
     h = m.header + rows * m.cell + m.pad_y

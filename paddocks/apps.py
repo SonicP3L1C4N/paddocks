@@ -11,8 +11,8 @@ Ids in the wild are messier than they look. The same browser is ``firefox``
 from a distro package, ``firefox_firefox`` from a snap and
 ``org.mozilla.firefox`` from a flatpak, so an exact-stem lookup sends the user
 hunting through /usr/share/applications for the spelling. We index the obvious
-aliases as well, and when there is still no match we suggest the nearest ids
-rather than reporting a bare "not installed".
+aliases too, and when nothing matches we suggest the nearest ids rather than a
+bare "not installed".
 """
 
 from __future__ import annotations

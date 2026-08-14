@@ -38,9 +38,9 @@ def _entry_point() -> Path | None:
     """What ``Exec=`` should run.
 
     A checkout runs bin/paddocks; an installed copy has no bin/ beside the
-    package and uses the console script instead. ``which`` is preferred over
-    the venv's own bin/ because it finds the symlink on PATH, which is the
-    path that stays valid if the venv is ever rebuilt underneath it.
+    package and uses the console script instead. ``which`` beats the venv's own
+    bin/ because it finds the symlink on PATH, which stays valid if the venv is
+    ever rebuilt underneath it.
     """
     checkout = Path(__file__).resolve().parent.parent / "bin" / "paddocks"
     if checkout.exists():

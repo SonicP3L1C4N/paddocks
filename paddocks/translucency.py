@@ -4,20 +4,19 @@
 
 """Optional: make applet backgrounds more transparent.
 
-This is the fragile half of the project and is deliberately separate from the
-groups. There is no setting for widget background opacity anywhere in Plasma
--- the frame is painted from the desktop theme's ``widgets/background`` SVG
-(see BasicAppletContainer.qml in plasma-workspace), so the only way to change
-it is to edit that artwork.
+The fragile half of the project, deliberately separate from the groups. Plasma
+has no widget background opacity setting -- the frame is painted from the
+desktop theme's ``widgets/background`` SVG (see BasicAppletContainer.qml in
+plasma-workspace), so the only way to change it is to edit that artwork.
 
 Two traps live here:
 
 1. Distros with ``AutomaticLookAndFeel=true`` (Kubuntu among them) let the
-   look-and-feel package re-assert its own desktop theme, which silently
-   overrides anything ``plasma-apply-desktoptheme`` wrote into plasmarc.
-   Applying a brand new custom theme therefore appears to do nothing at all.
-   We sidestep it by shadowing the *active* theme under its own id in
-   ~/.local/share, which takes priority over /usr/share.
+   look-and-feel package re-assert its own desktop theme, silently overriding
+   whatever ``plasma-apply-desktoptheme`` wrote into plasmarc -- so applying a
+   new custom theme appears to do nothing. We sidestep it by shadowing the
+   *active* theme under its own id in ~/.local/share, which takes priority
+   over /usr/share.
 2. Theme pixmap caches are keyed by theme name. Since we keep the name, the
    cache must be cleared or Plasma serves the old artwork forever.
 """
@@ -80,13 +79,12 @@ def active_themes() -> list[str]:
 def _is_safe_name(name: str) -> bool:
     """A theme id names one directory; it is not a path.
 
-    Worth enforcing rather than assuming. These names arrive from plasmarc and
-    from look-and-feel packages, and look-and-feel packages are routinely
-    installed from the KDE Store -- third-party content with no business
-    steering a copytree or an rmtree out of the theme directory. Without this,
-    a name of ``../../../../../../tmp/x`` passes the is_dir() check below
-    (because the traversal resolves to somewhere that does exist) and
-    ``reset()`` deletes whatever it lands on.
+    Worth enforcing rather than assuming. These names come from plasmarc and
+    from look-and-feel packages, which are routinely installed from the KDE
+    Store -- third-party content with no business steering a copytree or an
+    rmtree out of the theme directory. Without this, ``../../../../../../tmp/x``
+    passes the is_dir() check below (the traversal resolves to somewhere that
+    exists) and ``reset()`` deletes whatever it lands on.
     """
     return bool(name) and name not in (".", "..") \
         and not any(c in name for c in ("/", "\\", "\0"))

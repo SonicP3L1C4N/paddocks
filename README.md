@@ -15,10 +15,9 @@ SPDX-License-Identifier: MIT
 Grouped desktop launcher panels for KDE Plasma 6, built out of stock Plasma widgets.
 
 Windows has several tools that group desktop icons into titled, translucent
-panels; Linux has none of them. Plasma can already do most of what they are used
-for, but the pieces are undocumented and several of them fail *silently*.
-Paddocks is the working setup, plus — more usefully — the five things that
-otherwise cost an afternoon each.
+panels; Linux has none. Plasma can already do most of it, but the pieces are
+undocumented and several fail *silently*. Paddocks is the working setup, plus —
+more usefully — the five things that otherwise cost an afternoon each.
 
 ![Six groups laid out across the top of a 3440x1440 desktop](docs/screenshot.png)
 
@@ -29,8 +28,8 @@ pipx install "paddocks[gui] @ git+https://github.com/SonicP3L1C4N/paddocks.git"
 paddocks install-desktop        # optional: menu entry and icon
 ```
 
-Or clone and symlink the entry point onto your PATH, which needs no installer
-and picks up edits immediately:
+Or clone and symlink the entry point onto your PATH — no installer, and edits
+take effect immediately:
 
 ```
 git clone https://github.com/SonicP3L1C4N/paddocks.git
@@ -39,11 +38,10 @@ ln -s "$PWD/paddocks/bin/paddocks" ~/.local/bin/paddocks
 
 Requires KDE Plasma 6 (developed against 6.6), Python 3.11+ for `tomllib`, and
 `qdbus6` / `kwriteconfig6` / `kquitapp6`, all standard on a Plasma install.
-The command line has no third-party dependencies at all; only `paddocks edit`
-needs PyQt6, which is what the `[gui]` extra above pulls in. A distro package
-(`sudo apt install python3-pyqt6`) works too, and is the one a checkout uses —
-drop the extra and install it system-wide if you would rather not have a second
-copy of Qt in a venv.
+The command line has no third-party dependencies; only `paddocks edit` needs
+PyQt6, which the `[gui]` extra pulls in. A distro package
+(`sudo apt install python3-pyqt6`) works too, and is what a checkout uses — drop
+the extra to avoid a second copy of Qt in a venv.
 
 ## Use
 
@@ -89,10 +87,10 @@ config and rebuilds the desktop. An id that no longer resolves is shown in red
 and kept rather than quietly dropped — the application may only be temporarily
 uninstalled.
 
-Saving rewrites the file canonically: settings that differ from the defaults,
-then the groups in order. **Hand-written comments do not survive that.** Python
-has no TOML writer in its standard library, and the round-trip libraries that
-preserve comments are a dependency the rest of this does not need.
+Saving rewrites the file canonically: non-default settings, then the groups in
+order. **Hand-written comments do not survive that.** Python has no
+standard-library TOML writer, and the round-trip libraries that preserve
+comments are a dependency nothing else here needs.
 
 ### App ids
 
@@ -120,12 +118,11 @@ nearest ids instead of just failing:
 | `paddocks translucency 0.4` | widget background opacity, lower is more transparent; `reset` to undo |
 | `paddocks install-desktop` | menu entry and icon — `--remove`, `--variant dark\|light` |
 
-`--strict` turns a launcher that does not resolve into an error that changes
-nothing, for once a config is settled or when driving `apply` from a script.
-Put `strict = true` under `[settings]` to have it on every time; `--no-strict`
-gets past it for a single run. It earns its keep if any of your entries are
-hand-written `.desktop` files, which stop resolving the moment whatever they
-point at moves, and take the app quietly out of its group when they do.
+`--strict` turns an unresolved launcher into an error that changes nothing —
+for a settled config, or when driving `apply` from a script. Put
+`strict = true` under `[settings]` for every run; `--no-strict` gets past it
+once. It earns its keep on hand-written `.desktop` files, which stop resolving
+the moment their target moves and drop the app quietly out of its group.
 
 `install-desktop` writes `paddocks.desktop` into `~/.local/share/applications`
 and the icon into `~/.local/share/icons/hicolor`. The entry is generated rather
@@ -180,12 +177,12 @@ the trade is correct labels or working launchers, never both.
 pointing straight at installed `.desktop` files, renders them by application
 name, launches them, and accepts drag-and-drop.
 
-Two non-obvious keys. `maxSectionCount` sets how many icon rows you get —
-without it Quicklaunch flows everything into one row and shrinks the icons to
-fit, so icon size varies from group to group. And Quicklaunch *balances* icons
-across the rows it is given, so six in two rows render 3+3 rather than 4+2: size
-the widget to that balanced column count, or it scales the icons up to fill the
-extra width and every group ends up a slightly different size.
+Two non-obvious keys. `maxSectionCount` sets the icon row count — without it
+Quicklaunch flows everything into one row and shrinks icons to fit, so icon size
+varies between groups. And it *balances* icons across the rows it is given, so
+six in two rows render 3+3, not 4+2: size the widget to that balanced column
+count, or it scales the icons up to fill the extra width and every group comes
+out slightly different.
 
 </details>
 
@@ -295,11 +292,11 @@ documents or folders, that is Folder View's job, with the caveats in gotcha #1.
 updates to those themes stop reaching you. That is why it is a separate command
 from the groups — skip it if the trade is not worth it.
 
-**`apply` rewrites, it does not merge.** It removes the widgets it created
-previously (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from
-the config. Widgets you placed by hand are left alone, but not moved out of the
-way either. Launchers you add by dragging onto a group live in that widget's
-config, so `apply` will discard them — add them to the TOML instead.
+**`apply` rewrites, it does not merge.** It removes the widgets it made last
+time (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from the
+config. Hand-placed widgets are left alone, but not moved out of the way.
+Launchers added by dragging live in that widget's config, so `apply` discards
+them — add them to the TOML instead.
 
 **Every `apply` backs up your desktop layout first.**
 `plasma-org.kde.plasma.desktop-appletsrc` holds every panel, widget and
@@ -330,11 +327,10 @@ Reports from other distros are the most useful thing — particularly whether
 python3 -m unittest discover -s tests -t .
 ```
 
-Standard library only, so there is nothing to install. The tests never touch
-your real config, your state file or a running plasmashell — the plasma module
-is replaced wholesale in the tests that need it, rather than patched function
-by function, so a missed attribute cannot take your desktop down. The editor
-tests skip themselves if PyQt6 is absent.
+Standard library only, nothing to install. The tests never touch your real
+config, state file or a running plasmashell — the plasma module is replaced
+wholesale rather than patched function by function, so a missed attribute
+cannot take your desktop down. Editor tests skip themselves if PyQt6 is absent.
 
 ## Trademarks
 

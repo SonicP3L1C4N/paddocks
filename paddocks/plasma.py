@@ -91,14 +91,14 @@ def run_script(js: str, check: bool = True) -> str:
 def is_running() -> bool:
     """Whether there is a plasmashell in *this* session to script.
 
-    Asked of the session bus rather than of pgrep, which answers a subtly
-    different question: it matches every user's plasmashell on a shared
-    machine, and inside a sandbox it cannot see host processes at all and so
-    reports no shell while one is plainly running. Bus name ownership is the
-    thing `write_item_geometries` actually needs to know before it writes.
+    Asked of the session bus, not pgrep, which answers a different question:
+    it matches every user's plasmashell on a shared machine, and inside a
+    sandbox sees no host processes at all, reporting no shell while one is
+    plainly running. Bus name ownership is what `write_item_geometries` needs
+    to know before it writes.
 
-    Failure to ask is an error rather than a False, because a False here is
-    what lets that write go ahead.
+    Failure to ask raises rather than returning False, because False is what
+    lets that write go ahead.
     """
     proc = subprocess.run(
         [_qdbus(), "org.freedesktop.DBus", "/org/freedesktop/DBus",
@@ -155,12 +155,12 @@ def start() -> None:
     """Bring plasmashell back up.
 
     Asking systemd rather than spawning the binary is not a tidiness
-    preference. A child process inherits our cgroup -- ``start_new_session``
-    changes the session id, not the unit -- so a plasmashell spawned from here
-    lands in whatever transient ``app-*.service`` the desktop made to launch
-    *Paddocks*. Those units are ``KillMode=control-group``, so the shell then
-    dies with the terminal or menu entry that started us, and meanwhile
-    ``plasma-plasmashell.service`` sits inactive and no longer describes the
+    preference. A child inherits our cgroup -- ``start_new_session`` changes
+    the session id, not the unit -- so a plasmashell spawned from here lands in
+    whatever transient ``app-*.service`` the desktop made to launch *Paddocks*.
+    Those units are ``KillMode=control-group``, so the shell dies with the
+    terminal or menu entry that started us, while
+    ``plasma-plasmashell.service`` sits inactive, no longer describing the
     running desktop.
     """
     if unit_is_known():
@@ -215,10 +215,10 @@ def add_quicklaunch_widgets(entries: list[tuple[str, list[str], int]]) -> list[i
 
     Quicklaunch stores ``file://`` URLs pointing straight at the installed
     ``.desktop`` files and renders them by application name. Folder View was
-    the obvious choice here and is the wrong one: pointed at a plain
-    ``file://`` folder it labels every entry with its raw filename, and pointed
-    at ``desktop:/`` it labels them correctly but will not launch anything and
-    never notices files being added. See the README.
+    the obvious choice and is the wrong one: pointed at a plain ``file://``
+    folder it labels entries with their raw filenames; pointed at ``desktop:/``
+    it labels them correctly but launches nothing and never notices new files.
+    See the README.
     """
     payload = json.dumps([{"title": t, "urls": u, "rows": r} for t, u, r in entries])
     # The script catches its own errors so that the ids created before the

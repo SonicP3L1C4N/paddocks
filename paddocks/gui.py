@@ -7,10 +7,10 @@
 PyQt6 is imported here and nowhere else, so the command line keeps working on
 a machine that does not have it.
 
-The three lists are the model. Rather than mirroring the config into widgets
-and trying to keep the two in step through drags, renames and deletions, each
-row carries the thing it stands for -- a Group object, or an app id -- and the
-config is rebuilt by reading the rows back whenever it is needed.
+The three lists are the model. Rather than mirroring the config into widgets and
+keeping the two in step through drags, renames and deletions, each row carries
+the thing it stands for -- a Group object, or an app id -- and the config is
+rebuilt by reading the rows back when needed.
 """
 
 from __future__ import annotations
@@ -102,11 +102,11 @@ class Worker(QThread):
         out = io.StringIO()
         try:
             with contextlib.redirect_stdout(out):
-                # Explicitly not strict, whatever the config says. Strict
-                # exists to stop an unresolved id being dropped without anyone
-                # noticing; here the editor has already shown it in red, and
-                # refusing to apply would leave no way to rebuild the desktop
-                # short of deleting an entry the user may want to keep.
+                # Explicitly not strict, whatever the config says. Strict stops
+                # an unresolved id being dropped unnoticed; here the editor has
+                # already shown it in red, and refusing to apply would leave no
+                # way to rebuild the desktop short of deleting an entry the
+                # user may want to keep.
                 groups.apply(self.config, dry_run=self.dry_run, strict=False)
         except Exception as exc:  # surfaced in the output dialog
             self.done.emit(False, f"{out.getvalue()}\nerror: {exc}")
