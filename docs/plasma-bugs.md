@@ -36,7 +36,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 2 | plasmashell | `Folder View widget` | normal | **filed — [524243](https://bugs.kde.org/show_bug.cgi?id=524243)**, REPORTED |
 | 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | **posted** as comment #5, 2026-08-14 |
 | 4 | plasmashell | `general` | normal | **filed — [524244](https://bugs.kde.org/show_bug.cgi?id=524244)**, REPORTED |
-| 5 | frameworks-ksvg | `General` | minor | not filed |
+| 5 | frameworks-ksvg | `General` | normal | **filed — [524245](https://bugs.kde.org/show_bug.cgi?id=524245)**, REPORTED |
 | 6 | plasmashell | `Theme - Breeze` | minor | optional, see note |
 | 7 | plasmashell | `Containment` | wishlist | not filed |
 
@@ -315,12 +315,35 @@ Graphics Platform: Wayland
 
 ## 5. Plasma theme pixmap cache is not invalidated when a theme's files change under the same name
 
-**Product:** frameworks-ksvg · **Component:** `General` · **Severity:** minor
+**Filed 2026-08-14 as [bug 524245](https://bugs.kde.org/show_bug.cgi?id=524245)**
+— status REPORTED, assigned to Plasma Bugs List.
+
+**Product:** frameworks-ksvg · **Component:** `General` · **Severity:** normal
+(filed as normal rather than the minor drafted here) · **Version:** 6.6.0
 
 frameworks-ksvg is "Library for complex SVG handling, including support for
 dynamic re-coloring, 9-patch images, and disk caching" — the disk caching clause
 is this bug. It has a single `General` component. If the cache turns out not to
 be KSvg's, the other candidate is the `libplasma` product.
+
+**Loose end:** the version field reads 6.6.0, which is a Plasma version. This is
+a Frameworks product, so the meaningful number is KF 6.24.0, and 6.6.0 reads as
+a KF release from 2024 — old enough that a triager may assume it is stale. The
+report body carries no version block either. Worth a follow-up comment; text is
+below.
+
+### Follow-up comment to post on 524245
+
+```text
+Correcting the version field, which I set to a Plasma version by mistake -- this
+is a Frameworks product, so the number that matters is the KSvg one.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
+```
 
 ### SUMMARY
 
