@@ -17,16 +17,21 @@ request, and posting it there would get it answered rather than discussed.
 
 Discourse renders markdown, so the formatting below is intended — paste as-is.
 
+Two things that must survive the paste: the bug numbers are markdown links
+(Discourse will not auto-link a bare Bugzilla id), and `ItemGeometries-<W>x<H>`
+is backticked because Discourse strips unrecognised HTML tags — unbackticked,
+`<W>` and `<H>` disappear and the line renders as `ItemGeometries-x`.
+
 ---
 
 I've spent the last few days building a small tool that groups desktop launchers
-into titled panels on Plasma 6 — the kind of thing desktop-organiser tools do on
+into titled panels in Plasma 6 — the kind of thing desktop organiser tools do on
 Windows. It's called Paddocks: a TOML file describes the groups, and it builds
 them out of stock Quicklaunch widgets. https://github.com/SonicP3L1C4N/paddocks
 
 I'm not posting to advertise it. Plasma could already do nearly all of this — the
-problem was that the route there is undocumented, and several steps along it fail
-*silently*. I've filed what I found, and there's a design question at the end
+problem is that the route there is undocumented, and several steps along the way
+fail silently. I've filed what I found, and there's a design question at the end
 that I'd value opinions on.
 
 ## What I filed
@@ -52,8 +57,8 @@ that I'd value opinions on.
 
 I also added a comment to **[362511](https://bugs.kde.org/show_bug.cgi?id=362511)**
 (setting widget geometry from the scripting API, open since 2016) describing the
-failure mode: `Qt` is undefined so `Qt.rect()` throws, assigning a plain object is
-silently discarded, and reading the property back returns the auto-placed
+failure mode: `Qt` is undefined, so `Qt.rect()` throws, assigning a plain object
+is silently discarded, and reading the property back returns the auto-placed
 position — so it looks as though Plasma accepted the value and then re-laid out
 over the top of it.
 
@@ -61,16 +66,16 @@ over the top of it.
 
 That last one is why I'm posting rather than only filing. Because widget geometry
 can't be set from scripting, the only way to place a widget is to stop
-plasmashell, write `ItemGeometries-<W>x<H>` into
-`plasma-org.kde.plasma.desktop-appletsrc`, and start the shell again. That's a
+plasmashell, write `ItemGeometries-<W>x<H>` to
+`plasma-org.kde.plasma.desktop-appletsrc`, and start plasmashell again. That's a
 private format behind a shell restart. Anything built in this space is fragile by
 construction — a point release can change the format and break every tool relying
 on it.
 
-So the question: **is grouped desktop organisation something Plasma wants
-natively?** And if it is, what's the right shape — a containment feature, a
-widget, or simply making the layout scripting API able to place things, so
-external tools stop needing the back door?
+So the question is: **does Plasma want grouped desktop organisation natively?**
+And if it does, what's the right shape — a containment feature, a widget, or
+simply making the layout scripting API able to place things, so external tools
+stop needing the back door?
 
 I'd genuinely rather this tool became unnecessary than adopted. If the answer is
 "that belongs in the containment", that's a better outcome than me maintaining a
@@ -86,9 +91,9 @@ I used Claude Code throughout this: working out Plasma's config internals,
 chasing down the failure modes above, and writing Paddocks itself. Everything in
 those reports is behaviour I reproduced on the machine described above — the
 commands in them are commands I ran, and the observed results are what I saw.
-Where I wasn't certain, the report says so rather than asserting: 524243 states
-outright that it may be intentional and should be closed NOTABUG if so. Flagging
-it because I'd rather be up front than have anyone wonder.
+Where I wasn't certain, the report says so rather than asserting; 524243 states
+outright that it may be intentional and should be closed as NOTABUG if so.
+Flagging it because I'd rather be up front than have anyone wonder.
 
 Happy to test patches on any of the above; I have a setup that reproduces all of
 it.
