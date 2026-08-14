@@ -373,37 +373,59 @@ two together produce a change that is invisible for two separate reasons at once
 
 **Product:** plasmashell · **Component:** `Theme - Breeze` · **Severity:** minor
 
-### SUMMARY
+**Suggested title:** `translucent/widgets/background.svgz is shipped by every theme and referenced by nothing`
 
-Every desktop theme ships `translucent/widgets/background.svgz`. Nothing appears
-to load it. `BasicAppletContainer.qml` selects between
-`widgets/translucentbackground` and `widgets/background`; neither path resolves
-into the `translucent/` subdirectory.
+I had drafted this as "probably not worth filing standalone" — a tidiness report
+with no user-visible symptom. Gary is filing it anyway, which is reasonable: it
+gives #7 something concrete to point at, and it is verifiable in one command.
 
-### STEPS TO REPRODUCE
+### Report body to paste
 
-1. Note the file exists: `ls /usr/share/plasma/desktoptheme/default/translucent/widgets/`
-2. Copy the theme to `~/.local/share/plasma/desktoptheme/` under its own name and
-   patch `translucent/widgets/background.svgz`.
-3. Restart plasmashell with the theme cache cleared.
+```text
+SUMMARY
 
-### OBSERVED RESULT
+Every desktop theme ships translucent/widgets/background.svgz. As far as I can
+tell, nothing loads it. BasicAppletContainer.qml selects between
+"widgets/translucentbackground" and "widgets/background", and neither path
+resolves into the translucent/ subdirectory.
 
-No visible change anywhere. Patching `widgets/background.svgz` in the same theme
-does take effect, so the theme copy and cache clearing are working.
+STEPS TO REPRODUCE
 
-### EXPECTED RESULT
+1. Confirm the file is shipped:
 
-Either the asset is used, or it is dropped from the themes.
+       ls /usr/share/plasma/desktoptheme/default/translucent/widgets/
 
-### ADDITIONAL INFORMATION
+2. Copy the theme into ~/.local/share/plasma/desktoptheme/ under its own name,
+   and patch translucent/widgets/background.svgz with an obvious visible change.
 
-**Consider not filing this one.** It is accurate, but it is a
-tidiness report against theme packaging with no user-visible symptom, and the
-likely outcome is a shrug. Its actual value is as context inside report #7,
-where "the obvious file to patch is inert" is part of why there is no way to do
-the thing. If you want to keep your first round of reports strong, fold this
-into #7 as an additional note and skip filing it standalone.
+3. Clear the theme cache and restart the shell:
+
+       kquitapp6 plasmashell
+       rm -f ~/.cache/plasma_theme_*.kcache ~/.cache/ksvg-elements
+       plasmashell &
+
+OBSERVED RESULT
+
+No visible change anywhere.
+
+Patching widgets/background.svgz in the same theme copy does take effect, so the
+theme shadowing and the cache clearing are both working -- the translucent/
+variant simply is not read.
+
+EXPECTED RESULT
+
+Either the asset is used for something, or it is dropped from the themes.
+
+As it stands it is the obvious first thing to patch when trying to make applet
+backgrounds translucent, and patching it does nothing at all, which costs a
+while to work out.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
+```
 
 ---
 
@@ -416,39 +438,66 @@ area responsible for widget positioning") · **Severity:** wishlist
 `/usr/lib/*/qt6/qml/org/kde/plasma/private/containmentlayoutmanager/`, so the
 containment layout manager is the right owner.
 
-### SUMMARY
+**Suggested title:** `No way to control the opacity of a desktop widget's background frame`
 
-There is no setting, anywhere in Plasma, for the opacity of a desktop widget's
-background frame. Desktop widgets always take the `StandardBackground` path in
-`BasicAppletContainer.qml`:
+The only wishlist in the set, so it is written differently from the defects. A
+feature request competes with every other feature request; what makes this one
+worth reading is that it arrives with the implementation constraint already
+found, so it leads on that rather than on the want. Filing it as `wishlist`
+severity matters — a feature request filed as a bug gets reclassified and reads
+as though the reporter did not know the difference.
 
-```qml
-if (effectiveBackgroundHints & TranslucentBackground) return "widgets/translucentbackground";
-else if (effectiveBackgroundHints & StandardBackground) return "widgets/background";
-```
+**Before pasting:** replace `<NNNNNN>` in the last paragraph with report #6's bug
+number.
 
-so the frame is whatever `widgets/background.svgz` draws, at full opacity.
+### Report body to paste
 
-### EXPECTED RESULT
+```text
+SUMMARY
+
+There is no setting anywhere in Plasma for the opacity of a desktop widget's
+background frame.
+
+Desktop widgets always take the StandardBackground path in
+BasicAppletContainer.qml:
+
+    if (effectiveBackgroundHints & TranslucentBackground) return "widgets/translucentbackground";
+    else if (effectiveBackgroundHints & StandardBackground) return "widgets/background";
+
+so the frame is whatever widgets/background.svgz draws, at full opacity.
+
+WHAT I AM ASKING FOR
 
 A per-widget or theme-level opacity control for the applet background frame.
 
-### ADDITIONAL INFORMATION
+AN IMPLEMENTATION CONSTRAINT WORTH KNOWING UP FRONT
 
-For anyone else looking for the workaround, and because it points at a possible
-implementation constraint: the only way found to do this is to shadow the theme
-and add an `opacity` attribute to the nine `<g>` elements in
-`widgets/background.svgz` — `center`, `top`, `bottom`, `left`, `right` and the
-four corners — individually.
+The obvious implementation -- render the frame as usual, then wrap it in a single
+opacity group -- does not work. Ancestor opacity is not applied when Qt renders
+an SVG by element id, and rendering by element id is how KSvg draws frame parts.
 
-Setting `opacity` on the root `<svg>` element does **not** work, because ancestor
-opacity is not applied when Qt renders an SVG by element id, which is how KSvg
-draws frame parts. That is worth knowing for any implementation of this feature:
-it cannot be done by wrapping the rendered frame in a single opacity group.
+The only approach I found that does work is setting an opacity attribute on each
+of the nine <g> elements individually: center, top, bottom, left, right, and the
+four corners. The shadow-* elements are best left opaque, or panels stop reading
+against a busy wallpaper.
 
-The `shadow-*` elements should be left opaque so panels still read against a busy
-wallpaper.
+I mention it because it rules out the cheapest version of this feature, and it
+took a while to establish.
 
-Note also that `translucent/widgets/background.svgz` exists in every theme and
-appears to be referenced by nothing — it is the obvious first thing to patch and
-it has no effect (see report #6).
+WORKAROUND, FOR ANYONE WHO LANDS HERE
+
+Shadow the theme into ~/.local/share/plasma/desktoptheme/ and patch those nine
+elements in widgets/background.svgz by hand. The cost is real rather than
+cosmetic: while the shadow copy exists, distro updates to that theme stop
+reaching you.
+
+Note also that translucent/widgets/background.svgz, shipped by every theme, is
+the obvious first thing to patch and appears to be referenced by nothing, so
+patching it has no effect. Reported separately as bug <NNNNNN>.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
+```
