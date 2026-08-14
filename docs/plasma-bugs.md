@@ -21,9 +21,9 @@ Qt Version: 6.10.2
 Graphics Platform: Wayland
 ```
 
-Priority order: **3** first (it is a comment on an existing bug, not a new
-report), then **4, 1** — then **2, 5**, then **7**. Report **6** is optional; see
-the note on it.
+**All seven are upstream as of 2026-08-14** — six new reports, 524242 to 524247,
+plus a comment on the ten-year-old 362511. Nothing here is outstanding; what
+follows is the record of what was filed and why it was worded the way it was.
 
 Products and components below were checked against Bugzilla on 2026-08-14 and are
 exact. Note there is **no `plasma-workspace` product** — the Plasma shell,
@@ -38,7 +38,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 4 | plasmashell | `general` | normal | **filed — [524244](https://bugs.kde.org/show_bug.cgi?id=524244)**, REPORTED |
 | 5 | frameworks-ksvg | `General` | normal | **filed — [524245](https://bugs.kde.org/show_bug.cgi?id=524245)**, REPORTED |
 | 6 | plasmashell | `Theme - Breeze` | minor | **filed — [524246](https://bugs.kde.org/show_bug.cgi?id=524246)**, REPORTED |
-| 7 | plasmashell | `Containment` | wishlist | not filed |
+| 7 | plasmashell | `Containment` | wishlist | **filed — [524247](https://bugs.kde.org/show_bug.cgi?id=524247)**, REPORTED |
 
 Duplicate searches run at the same time: nothing pre-existing for 1, 2, 4, 5 or
 7. Report 4 is **not** a duplicate of [bug 507681](https://bugs.kde.org/show_bug.cgi?id=507681)
@@ -482,7 +482,9 @@ area responsible for widget positioning") · **Severity:** wishlist
 `/usr/lib/*/qt6/qml/org/kde/plasma/private/containmentlayoutmanager/`, so the
 containment layout manager is the right owner.
 
-**Suggested title:** `No way to control the opacity of a desktop widget's background frame`
+**Filed 2026-08-14 as [bug 524247](https://bugs.kde.org/show_bug.cgi?id=524247)**
+— status REPORTED, severity wishlist, version 6.6.6, cross-reference to 524246
+intact.
 
 The only wishlist in the set, so it is written differently from the defects. A
 feature request competes with every other feature request; what makes this one
