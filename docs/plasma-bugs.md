@@ -37,7 +37,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | **posted** as comment #5, 2026-08-14 |
 | 4 | plasmashell | `general` | normal | **filed — [524244](https://bugs.kde.org/show_bug.cgi?id=524244)**, REPORTED |
 | 5 | frameworks-ksvg | `General` | normal | **filed — [524245](https://bugs.kde.org/show_bug.cgi?id=524245)**, REPORTED |
-| 6 | plasmashell | `Theme - Breeze` | minor | optional, see note |
+| 6 | plasmashell | `Theme - Breeze` | minor | **filed — [524246](https://bugs.kde.org/show_bug.cgi?id=524246)**, REPORTED |
 | 7 | plasmashell | `Containment` | wishlist | not filed |
 
 Duplicate searches run at the same time: nothing pre-existing for 1, 2, 4, 5 or
@@ -371,13 +371,15 @@ two together produce a change that is invisible for two separate reasons at once
 
 ## 6. `translucent/widgets/background.svgz` is shipped by every theme and referenced by nothing
 
-**Product:** plasmashell · **Component:** `Theme - Breeze` · **Severity:** minor
+**Filed 2026-08-14 as [bug 524246](https://bugs.kde.org/show_bug.cgi?id=524246)**
+— status REPORTED, assigned to Plasma Bugs List.
 
-**Suggested title:** `translucent/widgets/background.svgz is shipped by every theme and referenced by nothing`
+**Product:** plasmashell · **Component:** `Theme - Breeze` · **Severity:** minor ·
+**Version:** 6.6.6
 
 I had drafted this as "probably not worth filing standalone" — a tidiness report
-with no user-visible symptom. Gary is filing it anyway, which is reasonable: it
-gives #7 something concrete to point at, and it is verifiable in one command.
+with no user-visible symptom. Filed anyway, which was the better call: it gives
+#7 something concrete to cite, and it is verifiable in one command.
 
 ### Report body to paste
 
@@ -447,8 +449,8 @@ found, so it leads on that rather than on the want. Filing it as `wishlist`
 severity matters — a feature request filed as a bug gets reclassified and reads
 as though the reporter did not know the difference.
 
-**Before pasting:** replace `<NNNNNN>` in the last paragraph with report #6's bug
-number.
+The cross-reference to #6 now carries its real number, 524246 — ready to paste
+as-is.
 
 ### Report body to paste
 
@@ -493,7 +495,7 @@ reaching you.
 
 Note also that translucent/widgets/background.svgz, shipped by every theme, is
 the obvious first thing to patch and appears to be referenced by nothing, so
-patching it has no effect. Reported separately as bug <NNNNNN>.
+patching it has no effect. Reported separately as bug 524246.
 
 Operating System: Ubuntu 26.04 LTS (Kubuntu)
 KDE Plasma Version: 6.6.6
