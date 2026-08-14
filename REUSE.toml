@@ -5,7 +5,7 @@ SPDX-PackageDownloadLocation = "https://github.com/SonicP3L1C4N/paddocks"
 
 # Binary artwork and screenshots cannot carry a comment header. The icons are
 # original work; the screenshots are of this tool running on the author's
-# desktop.
+# desktop. Text files under docs/ carry their own headers as well.
 [[annotations]]
 path = ["icons/**", "docs/**"]
 precedence = "aggregate"
