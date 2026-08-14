@@ -33,7 +33,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | # | Product | Component | Severity | Status |
 |---|---|---|---|---|
 | 1 | plasmashell | `desktop:/ IOWorker` | normal | **filed — [524242](https://bugs.kde.org/show_bug.cgi?id=524242)**, REPORTED |
-| 2 | plasmashell | `Folder View widget` | normal | not filed |
+| 2 | plasmashell | `Folder View widget` | normal | **filed — [524243](https://bugs.kde.org/show_bug.cgi?id=524243)**, REPORTED |
 | 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | not posted |
 | 4 | plasmashell | `general` | normal | not filed |
 | 5 | frameworks-ksvg | `General` | minor | not filed |
@@ -110,7 +110,11 @@ launcher panel; the workaround was to abandon Folder View entirely in favour of
 
 ## 2. Folder View at a `file://` URL labels `.desktop` files by filename, not `Name=`
 
+**Filed 2026-08-14 as [bug 524243](https://bugs.kde.org/show_bug.cgi?id=524243)**
+— status REPORTED, assigned to Plasma Bugs List.
+
 **Product:** plasmashell · **Component:** `Folder View widget` · **Severity:** normal
+· **Version:** 6.6.6
 
 ### SUMMARY
 
