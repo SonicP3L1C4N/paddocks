@@ -21,7 +21,7 @@ jobs:
       matrix:
         python: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
@@ -37,12 +37,27 @@ jobs:
     # PySide6 rather than PyQt6: PySide6 is LGPL and this project is MIT.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install the libraries Qt loads at import time
+        # The wheel carries Qt itself but not these. Without them the import
+        # raises ImportError, which the editor tests treat as "no PySide6 on
+        # this machine" and skip -- so the job goes green having tested
+        # nothing. That is what happened on the first run of this workflow.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libdbus-1-3 libglib2.0-0t64
       - name: Install with the editor
         run: python -m pip install --upgrade pip && python -m pip install -e ".[gui]"
+      - name: Refuse to skip the editor tests
+        # The skip is right on a machine with no Qt; it is wrong here, where
+        # the whole point of the job is the editor. Fail loudly instead.
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -c "from PySide6.QtWidgets import QApplication; print('Qt imports')"
       - name: Run the tests headless
         # No display on a runner, and the editor tests construct widgets.
         env:
@@ -53,5 +68,5 @@ jobs:
     # Licensing is a KDE intake gate, so it is checked rather than remembered.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: fsfe/reuse-action@v5
