@@ -28,6 +28,14 @@ and nothing in this repo claims something Bugzilla contradicts.
 | **524242** (FIXED) | README finding 1 says it is fixed in KIO master and absent from 6.24 LTS, and the workaround stays for LTS users. |
 | **524243, 524244** (WONTFIX) | README findings 1 and 3 are rewritten to describe deliberate trade-offs rather than defects, quoting the reasoning. No re-litigation. |
 | **362511** (CONFIRMED, 2016) | Nothing. Comment #5 stands. |
+| **524520** (new, UNCONFIRMED) | ~~File the `evaluateScript` report.~~ **Filed 2026-08-21.** Nothing further owed; it waits on triage. |
+
+**Track A is complete as of 2026-08-21.** Every report has a terminal state or is
+sitting with a triager, and nothing in this repo contradicts Bugzilla. Two of the
+original seven were retracted by their own reporter, one was already fixed
+upstream, two were answered as intentional, one wishlist is open and answered,
+and one new report came out of the work. What is left is watching, which is not a
+task.
 
 The honest failure mode for this track is arguing with WONTFIX. Two of five
 findings turned out to be intentional behaviour; saying so plainly in the README

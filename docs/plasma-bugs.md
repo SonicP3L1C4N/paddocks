@@ -38,6 +38,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 4 | [524244](https://bugs.kde.org/show_bug.cgi?id=524244) `general` | **RESOLVED WONTFIX** | "Works for me": the tool did apply the theme and exiting 0 is correct; the later reset is the automatic switcher doing its job. The report's actual complaint — that `plasmarc` is left disagreeing with the screen with no warning — was not addressed. |
 | 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | **RESOLVED / INVALID** 2026-08-21 | Nobody ever looked at it, and it was wrong: the cache does check per-file mtimes. Retracted by the reporter as comment #1 and closed. |
 | 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **RESOLVED / INVALID** 2026-08-21 | Was CONFIRMED, with an invitation to submit a removal MR. Tested instead; the premise was wrong. Retracted by the reporter as comment #3 and closed. |
+| 8 | [524520](https://bugs.kde.org/show_bug.cgi?id=524520) `Scripting` | **UNCONFIRMED**, filed 2026-08-21 | Not one of the original seven — found while writing multi-monitor support. `evaluateScript` runs `print()` output together. |
 | 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | **UNCONFIRMED**, answered 2026-08-21 | "Why? What's the use case for this?" — answered as comment #2 with the narrowed ask, and the status cleared off NEEDSINFO by hand. Open and waiting on triage. |
 
 ### The 524246 problem, found 2026-08-21
@@ -304,10 +305,17 @@ as well.
 Sorry for the noise. Please close.
 ```
 
-### New report — `evaluateScript` runs `print()` output together
+### `evaluateScript` runs `print()` output together — **FILED as [524520](https://bugs.kde.org/show_bug.cgi?id=524520)**
 
-**Not yet filed.** Found 2026-08-21 while enumerating screens for multi-monitor
-support; it is what made the first version of that code fail.
+Filed 2026-08-21, UNCONFIRMED, assigned to Plasma Bugs List. Found while
+enumerating screens for multi-monitor support; it is what made the first version
+of that code fail.
+
+Filed in the SUMMARY-first shape below rather than the template-shaped rewrite
+that follows it, with Bugzilla's empty boilerplate deleted from the description
+rather than left above the report. Both work; deleting the boilerplate is the
+part that matters, since a prefilled comment lands *underneath* it and leaves
+duplicate headings. The template version is kept for the next filing.
 
 **Product:** plasmashell · **Component:** `Scripting` · **Severity:** normal ·
 **Version:** 6.6.6
