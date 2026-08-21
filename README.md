@@ -181,6 +181,11 @@ cloned this — move the clone and run it again.
 
 None of this is documented, and most of it fails without an error message.
 
+All five went to KDE as bug reports on 2026-08-14 (524242–524247, plus a comment
+on 362511) and all but one had a reply within a day. **The outcomes are recorded
+inline below, including the one where the report turned out to be wrong.**
+`docs/plasma-bugs.md` is the full record.
+
 <details>
 <summary><b>1. Folder View looks like the right widget for launchers, and is a dead end</b></summary>
 
@@ -210,6 +215,21 @@ That second one costs a day to trust and then unpick. Verified with
 
 Launching only works at the desktop *root* — any grouping folder breaks it. So
 the trade is correct labels or working launchers, never both.
+
+**Upstream.** The `desktop:/` launch no-op is
+[bug 524242](https://bugs.kde.org/show_bug.cgi?id=524242), **RESOLVED FIXED** —
+it was already fixed in KIO by
+[4901a6cc](https://invent.kde.org/frameworks/kio/-/commit/4901a6cc7129dcfc2fae23c8526db31dd811b486),
+which was not backported to the 6.24 LTS branch because the fix needed a
+substantive UI change. So it is fixed for you if you are on a rolling Frameworks
+and not if you are on an LTS distro, which is most people reading this.
+
+The `file://` labelling is [bug 524243](https://bugs.kde.org/show_bug.cgi?id=524243),
+**WONTFIX, and intentional on both sides**: hiding `Name=` for `file://` entries
+is deliberate, and one of the reasons `desktop:/` exists is to *not* do that, so
+launchers on the desktop can be named properly. Inconsistent, and acknowledged as
+such — "the alternative is to field a zillion complaints about ugly app launcher
+names on the desktop". A trade-off, not an oversight.
 
 **Use Quicklaunch instead.** `org.kde.plasma.quicklaunch` stores `file://` URLs
 pointing straight at installed `.desktop` files, renders them by application
@@ -273,6 +293,14 @@ Fix: don't introduce a new theme id at all. Copy the active theme into
 `~/.local/share/plasma/desktoptheme/` **under its original name** — the user data
 dir shadows `/usr/share` — and patch the copy. Do it for the light *and* dark
 variants, or the styling vanishes when the day/night schedule flips.
+
+**Upstream.** [Bug 524244](https://bugs.kde.org/show_bug.cgi?id=524244),
+**WONTFIX**: the tool did apply the theme, so exiting 0 is correct, and the later
+reset is the automatic switcher doing the job you turned on. Fair as far as it
+goes. It leaves the part that costs the time — `plasmarc` still says your theme,
+so the obvious next diagnostic confirms the setting and sends you looking
+anywhere but at the tool — but the report was made and answered, and it is not
+worth arguing twice.
 
 </details>
 

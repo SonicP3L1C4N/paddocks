@@ -21,24 +21,284 @@ Qt Version: 6.10.2
 Graphics Platform: Wayland
 ```
 
-**All seven are upstream as of 2026-08-14** — six new reports, 524242 to 524247,
-plus a comment on the ten-year-old 362511. Nothing here is outstanding; what
-follows is the record of what was filed and why it was worded the way it was.
+**All seven were upstream on 2026-08-14** — six new reports, 524242 to 524247,
+plus a comment on the ten-year-old 362511. **Six of the seven had a reply within
+a day**, all from Nate Graham; the outcomes as of 2026-08-21 are below.
 
 Products and components below were checked against Bugzilla on 2026-08-14 and are
 exact. Note there is **no `plasma-workspace` product** — the Plasma shell,
 including the code that ships in the `plasma-workspace` package, is filed under
 `plasmashell`.
 
-| # | Product | Component | Severity | Status |
-|---|---|---|---|---|
-| 1 | plasmashell | `desktop:/ IOWorker` | normal | **filed — [524242](https://bugs.kde.org/show_bug.cgi?id=524242)**, REPORTED |
-| 2 | plasmashell | `Folder View widget` | normal | **filed — [524243](https://bugs.kde.org/show_bug.cgi?id=524243)**, REPORTED |
-| 3 | — comment on [bug 362511](https://bugs.kde.org/show_bug.cgi?id=362511) — | | | **posted** as comment #5, 2026-08-14 |
-| 4 | plasmashell | `general` | normal | **filed — [524244](https://bugs.kde.org/show_bug.cgi?id=524244)**, REPORTED |
-| 5 | frameworks-ksvg | `General` | normal | **filed — [524245](https://bugs.kde.org/show_bug.cgi?id=524245)**, REPORTED |
-| 6 | plasmashell | `Theme - Breeze` | minor | **filed — [524246](https://bugs.kde.org/show_bug.cgi?id=524246)**, REPORTED |
-| 7 | plasmashell | `Containment` | wishlist | **filed — [524247](https://bugs.kde.org/show_bug.cgi?id=524247)**, REPORTED |
+| # | Bug | Status on 2026-08-21 | Outcome |
+|---|---|---|---|
+| 1 | [524242](https://bugs.kde.org/show_bug.cgi?id=524242) `desktop:/ IOWorker` | **RESOLVED FIXED** | Already fixed upstream in KIO ([4901a6cc](https://invent.kde.org/frameworks/kio/-/commit/4901a6cc7129dcfc2fae23c8526db31dd811b486)); not backported to the 6.24 LTS branch because the fix needed a substantive UI change. |
+| 2 | [524243](https://bugs.kde.org/show_bug.cgi?id=524243) `Folder View widget` | **RESOLVED WONTFIX** | Intentional both ways: `file://` withholds `Name=` on purpose, and `desktop:/` exists partly *to* show it. Accepted trade-off, not an oversight. |
+| 3 | [362511](https://bugs.kde.org/show_bug.cgi?id=362511) `Scripting` | CONFIRMED, no reply | Comment #5 stands. Nothing to do but watch. |
+| 4 | [524244](https://bugs.kde.org/show_bug.cgi?id=524244) `general` | **RESOLVED WONTFIX** | "Works for me": the tool did apply the theme and exiting 0 is correct; the later reset is the automatic switcher doing its job. The report's actual complaint — that `plasmarc` is left disagreeing with the screen with no warning — was not addressed. |
+| 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | UNCONFIRMED, **no reply** | The only one nobody has looked at. |
+| 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **CONFIRMED** — "Feel free to submit a merge request removing it." | An open invitation to contribute. **But see the correction below: the premise now looks wrong.** |
+| 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | **NEEDSINFO** since 2026-08-14 | "Why? What's the use case for this?" — unanswered for a week. Needs a reply. |
+
+### The 524246 problem, found 2026-08-21
+
+524246 says `translucent/widgets/background.svgz` "is shipped by every theme and
+referenced by nothing", and it is CONFIRMED with an invitation to delete it.
+Reading the source says otherwise, and an MR that deletes a live asset is the
+worst possible first contribution.
+
+The mechanism is KSvg *selectors*:
+
+* `ThemePrivate::updateKSvgSelectors()` (libplasma `src/plasma/private/theme_p.cpp`,
+  v6.6.6) sets `kSvgImageSet->setSelectors({"translucent"})` whenever compositing
+  is on **and** the blur effect is active, and `{"opaque"}` when compositing is off.
+* `ImageSetPrivate::findInImageSet()` (ksvg `src/ksvg/private/imageset_p.cpp`)
+  tries `<theme>/<selector>/<image>` for each selector *before* `<theme>/<image>`,
+  and repeats the whole search across the fallback themes.
+* On 6.6.6 "blur is active" means the Wayland `org_kde_kwin_blur_manager` global
+  is bound. `wayland-info` on this machine lists it, so the selector should be on.
+
+So `translucent/` is not dead code — it is a whole second variant of the theme,
+selected automatically. `opaque/` is the same mechanism for the non-composited
+case. Neither is referenced by name anywhere, which is exactly why grepping for
+them finds nothing and why the report reads as convincing.
+
+What is still unexplained is the original observation: patching that file changed
+nothing on screen. Candidates, in order of likelihood:
+
+1. The patched file was in a theme that was not on the resolved search path —
+   the active theme is `kubuntu-light` (shadowed in `~/.local/share`), which ships
+   no `translucent/` directory of its own.
+2. The blur global is advertised but `BlurManager::isActive()` is false at the
+   moment `updateKSvgSelectors()` runs, so the selector is never set.
+3. The selector is set and the asset genuinely is not used for *desktop applet*
+   frames specifically.
+
+(1) means 524246 must be retracted. (3) would be a better bug than the one filed.
+**This has to be settled by experiment before anything is submitted or posted.**
+
+### The experiment, run 2026-08-21 — the report is wrong
+
+A magenta, fully opaque `background.svgz` was placed at
+`~/.local/share/plasma/desktoptheme/kubuntu-light/translucent/widgets/`, the
+theme caches were cleared with plasmashell stopped, and the shell restarted.
+**Every desktop widget frame turned magenta.** The selector path is live on
+6.6.6, and it takes precedence over `kubuntu-light/widgets/background.svgz`,
+which is the file the `translucency` command patches.
+
+The original negative result is explained by hypothesis (1): the active theme is
+`kubuntu-light`, which shadows only `widgets/background.svgz` and ships no
+`translucent/` directory. `findInImageSet()` tries the selector path *and* the
+plain path within the current theme before moving on to the fallback theme, so
+`kubuntu-light/widgets/background.svgz` wins and Breeze's
+`translucent/widgets/background.svgz` is never reached. The file that was patched
+was never on the resolved path.
+
+Comparing the two stock Breeze assets confirms the intent — `translucent/` is not
+a copy, it is a different drawing:
+
+| | `widgets/background.svgz` | `translucent/widgets/background.svgz` |
+|---|---|---|
+| size | 30619 bytes | 48662 bytes |
+| frame opacities | `0.875` | `0.8` and `0.2` |
+| extra elements | — | nine `blurred-mask-*`, one per frame part |
+
+The `blurred-mask-*` elements are how the widget tells KWin what region to blur
+behind it. So a theme that overrides only `widgets/background.svgz` — which is
+what `paddocks translucency` does, and what Kubuntu's own theme does — silently
+opts every widget out of Plasma's blur-aware background. Nothing reports it.
+
+**524246 must be retracted, not merged into an MR.** Draft below.
+
+---
+
+## Outstanding replies, drafted 2026-08-21
+
+Plain text, because Bugzilla does not render markdown.
+
+### For 524246 — retraction
+
+```text
+I need to retract this, and I am glad I tested before opening the merge request:
+removing those files would have been a regression.
+
+translucent/ is not unreferenced. It is reached through KSvg selectors, and the
+path is never written down anywhere, which is why grepping for it finds nothing.
+
+ThemePrivate::updateKSvgSelectors() in libplasma (src/plasma/private/theme_p.cpp,
+v6.6.6) calls kSvgImageSet->setSelectors({"translucent"}) whenever compositing is
+active and the blur effect is available, and {"opaque"} when compositing is off.
+ImageSetPrivate::findInImageSet() in ksvg (src/ksvg/private/imageset_p.cpp) then
+tries <theme>/<selector>/<image> ahead of <theme>/<image>, repeating the whole
+search across the fallback themes.
+
+Tested rather than argued from the source: I put an obviously wrong background
+(flat magenta, fully opaque) at
+
+    ~/.local/share/plasma/desktoptheme/kubuntu-light/translucent/widgets/background.svgz
+
+stopped plasmashell, cleared ~/.cache/plasma_theme_*.kcache and
+~/.cache/ksvg-elements, and started it again. Every desktop widget frame picked
+it up. The selector is live on 6.6.6 under Wayland with KWin advertising
+org_kde_kwin_blur_manager.
+
+Why my original test showed nothing: my active theme is kubuntu-light, which
+shadows only widgets/background.svgz and ships no translucent/ directory of its
+own. findInImageSet() tries the selector path and then the plain path within the
+current theme before falling through to Breeze, so kubuntu-light's plain file
+wins and Breeze's translucent variant is never consulted. I patched a file that
+was not on the resolved path and concluded the file was dead.
+
+One observation that may be worth someone's time, though it is not what I
+reported: the two Breeze assets are not copies of each other. The translucent
+variant is less opaque and carries nine blurred-mask-* elements, one per frame
+part, which is how the widget tells KWin what to blur behind it. A theme that
+overrides only widgets/background.svgz therefore opts all of its widgets out of
+the blur-aware background silently -- no warning to the theme author, and no
+visible symptom beyond "blur does not seem to work with this theme". That is
+arguably correct precedence, since an explicit override should win. It is just
+invisible when it goes wrong.
+
+Sorry for the noise on this one.
+```
+
+Resolve it as INVALID at the same time, or ask for it to be closed. Leaving a
+CONFIRMED bug standing on a premise its own reporter has disproved is worse than
+having filed it.
+
+### For 524247 — answering "what's the use case?"
+
+```text
+Yes. Concretely: grouped launcher panels on the desktop.
+
+I build titled boxes of launchers directly on the desktop -- a Quicklaunch widget
+per group, positioned and sized like a small panel. Six of them cover a good
+fraction of a 3440x1440 screen. At the standard applet background opacity the
+desktop stops being a desktop and becomes a slab of frames: the wallpaper is the
+only reason those widgets are on the desktop rather than in a panel, and the
+frames are what hides it.
+
+What I want is one number per widget -- the opacity of its background frame --
+so a group can sit over the wallpaper the way a panel sits over a window.
+
+Since filing this I found I had the mechanism wrong, and the request is narrower
+than I wrote it. Plasma already varies the applet background by blur
+availability: updateKSvgSelectors() sets the "translucent" KSvg selector when
+blur is active, and Breeze's translucent/widgets/background.svgz is a genuinely
+different asset -- lower opacities, plus nine blurred-mask-* elements. So the
+rendering path exists and is live. What is missing is anything that exposes it,
+and any way to land between or beyond the two variants a theme happens to ship.
+
+So the ask is: a per-widget background opacity setting in the widget's own
+settings dialog, defaulting to whatever the theme currently gives.
+
+The implementation constraint from the original report still holds for anyone
+picking this up: wrapping the frame in a single opacity group does not work,
+because ancestor opacity is not applied when Qt renders an SVG by element id, and
+rendering by element id is how KSvg draws frame parts. Setting an opacity
+attribute on each of the nine <g> elements individually does work -- leaving the
+shadow-* elements opaque, or frames stop reading against a busy wallpaper.
+
+If the answer is "this belongs in a theme, go and make a theme", that is a fair
+answer and I will take it. It is worth knowing what it costs the user today,
+though: it means shadowing a system theme into ~/.local/share under its own name,
+after which distro updates to that theme stop reaching them, and -- per the
+paragraph above -- silently drops the blurred-mask-* elements unless they think
+to copy the translucent variant too.
+```
+
+### For 524245 — the one nobody replied to
+
+**Held, deliberately.** A follow-up that adds nothing new to an ignored report is
+just a bump. The report currently infers the stale cache from the fact that
+clearing it is *necessary*; what would make it undeniable is showing that a
+changed asset is *not* picked up without clearing — change a theme asset,
+restart plasmashell **without** clearing the caches, and show the old artwork
+still rendering. That experiment has not been run; every theme change made here
+so far cleared the caches in the same breath. Run it first, then comment.
+
+### New report — `evaluateScript` runs `print()` output together
+
+**Not yet filed.** Found 2026-08-21 while enumerating screens for multi-monitor
+support; it is what made the first version of that code fail.
+
+**Product:** plasmashell · **Component:** `Scripting` · **Severity:** normal ·
+**Version:** 6.6.6
+
+Not a duplicate: the component holds nine bugs, none about script output —
+362511 (geometry, ours), 433799, 512005, 513669, 515385, 515789, 518887, 521549,
+523675.
+
+Severity `normal` rather than `minor` on the same reasoning as report 5: this is
+wrong output rather than a cosmetic nit, and it corrupts the caller's data
+quietly instead of failing.
+
+```text
+SUMMARY
+
+The string returned by org.kde.PlasmaShell.evaluateScript joins the output of
+successive print() calls with no separator. A script that prints more than one
+value comes back as a single run-together string, and there is nothing in it to
+say where one value ends and the next begins.
+
+STEPS TO REPRODUCE
+
+    qdbus6 org.kde.plasmashell /PlasmaShell \
+        org.kde.PlasmaShell.evaluateScript 'print("one"); print("two");'
+
+OBSERVED RESULT
+
+    onetwo
+
+EXPECTED RESULT
+
+    one
+    two
+
+print() terminating a record is what the name implies, and what the equivalent
+in every other scripting console does.
+
+ADDITIONAL INFORMATION
+
+The transport is not the problem -- a newline inside a single print() survives
+the round trip:
+
+    ... evaluateScript 'print("one\ntwo");'
+    one
+    two
+
+so it is print() that does not append one.
+
+Why it is worth fixing rather than working around: the failure produces
+plausible output rather than obviously broken output. Enumerating screens --
+
+    for (var i = 0; i < screenCount; i++) {
+        var g = screenGeometry(i);
+        print(i + " " + g.width + "x" + g.height);
+    }
+
+returns
+
+    0 3440x14401 2560x1440
+
+on a two-screen desktop. The "1" that opens the second record is glued to the
+first record's height, so the first screen reads as 14401 pixels tall and the
+second record is missing its index. Every field still looks like a number.
+Splitting the result on newlines -- the obvious thing to do, and correct for
+single-record scripts -- yields one record containing all of them.
+
+The workaround is for the script to emit its own separator, which is fine once
+you know. Until you know, it looks like the Plasma API is returning bad values.
+
+Operating System: Ubuntu 26.04 LTS (Kubuntu)
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
+```
+
+---
+
 
 Duplicate searches run at the same time: nothing pre-existing for 1, 2, 4, 5 or
 7. Report 4 is **not** a duplicate of [bug 507681](https://bugs.kde.org/show_bug.cgi?id=507681)
