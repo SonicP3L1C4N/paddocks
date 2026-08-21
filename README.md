@@ -115,7 +115,9 @@ Drag within either list to reorder, drag a group up or down to change where it
 lands on screen, double-click an application to add or remove it. **Add folder**
 makes a folder group instead — pick a directory and it is stored with `~` intact
 when it is under your home. Selecting one shows the folder it points at rather
-than an app list, since Plasma reads its contents live. **Preview**
+than an app list, since Plasma reads its contents live. **Screen** is which
+monitor the selected group is built on, listing what Plasma reports rather than
+bare indexes — see below. **Preview**
 shows the computed layout without touching anything; **Save & Apply** writes the
 config and rebuilds the desktop. An id that no longer resolves is shown in red
 and kept rather than quietly dropped — the application may only be temporarily
@@ -137,14 +139,19 @@ screen = 1
 apps = ["code", "org.kde.konsole"]
 ```
 
-The index is Plasma's own numbering, which follows neither the physical
-arrangement nor which monitor you think of as primary. Ask:
+`paddocks edit` has the same choice as a picker on each group, which saves
+looking the index up. The index is Plasma's own numbering, which follows neither
+the physical arrangement nor which monitor you think of as primary. Ask:
 
 ```
 $ paddocks screens
 screen 0    3440x1440  containment 1
 screen 1    2560x1440  containment 247
 ```
+
+A group configured for a monitor that is not plugged in keeps it — in the config
+and in the editor, which shows it as *not connected* rather than resetting it.
+Unplugging a monitor is not a decision to move what was on it.
 
 Each screen is solved as its own layout against its own size, so groups wrap
 where that screen runs out rather than where the widest one does. Positions are

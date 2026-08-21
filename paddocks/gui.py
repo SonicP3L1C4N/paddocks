@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
     QSpinBox, QSplitter, QVBoxLayout, QWidget,
 )
 
-from . import apps, desktop, groups
+from . import apps, desktop, groups, plasma
 from .layout import ALIGNMENTS, ARRANGEMENTS, Metrics
 
 ROLE = Qt.ItemDataRole.UserRole
@@ -138,6 +138,10 @@ class Editor(QMainWindow):
         self.arrangement = "row"
         self.dirty = False
         self.worker: Worker | None = None
+        # Asked once at startup rather than per group: plugging a monitor in
+        # while the editor is open is rare, and each query is a round trip to
+        # the shell. Reopening the editor picks up a new one.
+        self.screens = self._discover_screens()
 
         self.setWindowTitle("Paddocks")
         self.setWindowIcon(paddocks_icon())
@@ -205,8 +209,20 @@ class Editor(QMainWindow):
         buttons.addWidget(self.remove_button)
         buttons.addStretch(1)
 
+        self.screen_box = QComboBox()
+        self.screen_box.setToolTip(
+            "Which monitor this group is built on. The numbering is Plasma's, "
+            "which follows neither the physical arrangement nor which monitor "
+            "you would call primary, so the list comes from the shell itself.")
+        self.screen_box.currentIndexChanged.connect(self._screen_chosen)
+        self.screen_row = QHBoxLayout()
+        self.screen_row.addWidget(QLabel("Screen"))
+        self.screen_row.addWidget(self.screen_box)
+        self.screen_row.addStretch(1)
+
         self.contents_label = QLabel("Applications in group")
-        return _panel(self.contents_label, self.app_list, buttons)
+        return _panel(self.contents_label, self.app_list, buttons,
+                      above=self.screen_row)
 
     def _library_panel(self) -> QWidget:
         self.search = QLineEdit()
@@ -400,11 +416,70 @@ class Editor(QMainWindow):
     def _add_group_item(self, group: groups.Group) -> QListWidgetItem:
         icon = "folder-open" if group.is_folder else "folder"
         item = QListWidgetItem(QIcon.fromTheme(icon), group.name)
+        self._label_group_item(item, group)
         if group.is_folder:
             item.setToolTip(f"Folder group, showing {group.expanded_path()}")
         item.setData(ROLE, group)
         self.group_list.addItem(item)
         return item
+
+    def _discover_screens(self) -> list:
+        """The monitors Plasma is laying out for, or nothing if it cannot say.
+
+        The editor has to open on a machine where plasmashell is not running --
+        over ssh, or while the shell is being restarted by an apply -- so a
+        failure here is a missing list, not an error.
+        """
+        try:
+            return plasma.screens()
+        except (plasma.PlasmaError, OSError):
+            return []
+
+    def _fill_screen_box(self, group: groups.Group | None) -> None:
+        """Rebuild the picker for `group`, without marking anything dirty."""
+        box = self.screen_box
+        box.blockSignals(True)
+        box.clear()
+        box.setEnabled(group is not None)
+
+        for screen in self.screens:
+            box.addItem(f"{screen.index} — {screen.width}×{screen.height}",
+                        screen.index)
+
+        wanted = group.screen if group is not None else 0
+        if box.findData(wanted) < 0:
+            # A group keeps the screen it was configured for even when that
+            # monitor is not plugged in. Quietly dropping it back to 0 would
+            # rewrite the config on the next save, and unplugging a monitor is
+            # not a decision to move the groups that were on it.
+            box.addItem(
+                f"{wanted} — not connected" if self.screens else f"screen {wanted}",
+                wanted)
+        box.setCurrentIndex(max(box.findData(wanted), 0))
+        box.blockSignals(False)
+
+    def _screen_chosen(self, _index: int) -> None:
+        group = self._current_group()
+        if group is None:
+            return
+        chosen = self.screen_box.currentData()
+        if chosen is None or chosen == group.screen:
+            return
+        group.screen = chosen
+        item = self.group_list.currentItem()
+        if item is not None:
+            self._label_group_item(item, group)
+        self._touch()
+
+    def _label_group_item(self, item: QListWidgetItem,
+                          group: groups.Group) -> None:
+        """Name the group, and say which monitor when it is not the first.
+
+        Only worth the noise once there is more than one screen to be on.
+        """
+        elsewhere = group.screen and len(self.screens) != 1
+        item.setText(f"{group.name}   · screen {group.screen}" if elsewhere
+                     else group.name)
 
     def _current_group(self) -> groups.Group | None:
         item = self.group_list.currentItem()
@@ -415,6 +490,7 @@ class Editor(QMainWindow):
             self._flush_apps(previous.data(ROLE))
         group = current.data(ROLE) if current else None
         self.app_list.clear()
+        self._fill_screen_box(group)
 
         if group is not None and group.is_folder:
             # A folder group has no app list to edit -- Plasma reads the
@@ -641,10 +717,13 @@ class Editor(QMainWindow):
             event.ignore()
 
 
-def _panel(heading, list_widget: QListWidget, buttons: QHBoxLayout) -> QWidget:
+def _panel(heading, list_widget: QListWidget, buttons: QHBoxLayout,
+           above: QHBoxLayout | None = None) -> QWidget:
     box = QVBoxLayout()
     box.setContentsMargins(0, 0, 0, 0)
     box.addWidget(heading if isinstance(heading, QLabel) else QLabel(heading))
+    if above is not None:
+        box.addLayout(above)
     box.addWidget(list_widget, 1)
     box.addLayout(buttons)
     panel = QWidget()

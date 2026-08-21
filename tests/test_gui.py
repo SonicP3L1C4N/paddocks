@@ -54,7 +54,9 @@ def setUpModule():
 
 
 @unittest.skipUnless(QT, "PySide6 is not installed")
-class EditorTest(unittest.TestCase):
+class EditorFixture(unittest.TestCase):
+    """Setup shared by the editor suites; holds no tests of its own."""
+
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
@@ -74,8 +76,31 @@ class EditorTest(unittest.TestCase):
         gui.apps.build = lambda *a, **k: self.index
         self.addCleanup(lambda: setattr(gui.apps, "build", self._real_build))
 
-        self.editor = gui.Editor(self.config_path)
-        self.addCleanup(self.editor.deleteLater)
+        # ...and ask the running plasmashell for its screens. No test may talk
+        # to the real shell, so the screen list is faked the same way.
+        self._real_screens = gui.plasma.screens
+        self.addCleanup(lambda: setattr(gui.plasma, "screens", self._real_screens))
+        self.set_screens([(1920, 1080), (1280, 1024)])
+
+        self.editor = self.make_editor()
+
+    def set_screens(self, sizes, fail=False):
+        """`sizes` is [(width, height), ...]; containment ids are index + 1."""
+        def screens():
+            if fail:
+                raise gui.plasma.PlasmaError("no plasmashell in this session")
+            return [gui.plasma.Screen(i, w, h, i + 1)
+                    for i, (w, h) in enumerate(sizes)]
+        gui.plasma.screens = screens
+
+    def make_editor(self):
+        editor = gui.Editor(self.config_path)
+        self.addCleanup(editor.deleteLater)
+        return editor
+
+    def screen_entries(self):
+        box = self.editor.screen_box
+        return [(box.itemText(i), box.itemData(i)) for i in range(box.count())]
 
     def group_names(self):
         return [self.editor.group_list.item(r).data(gui.ROLE).name
@@ -85,6 +110,9 @@ class EditorTest(unittest.TestCase):
         return [self.editor.app_list.item(r).data(gui.ROLE)
                 for r in range(self.editor.app_list.count())]
 
+
+@unittest.skipUnless(QT, "PySide6 is not installed")
+class EditorTest(EditorFixture):
     def test_loads_the_groups(self):
         self.assertEqual(self.group_names(), ["Dev", "Web", "Media"])
 
@@ -176,3 +204,73 @@ class EditorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless(QT, "PySide6 is not installed")
+class ScreenPicker(EditorFixture):
+    """Choosing which monitor a group is built on.
+
+    The picker drives the same `screen` key the TOML has, so the thing worth
+    testing is the edges: a group configured for a monitor that is not plugged
+    in must keep it, and the editor has to open at all when there is no
+    plasmashell to ask.
+    """
+
+    def test_it_offers_the_screens_plasma_reports(self):
+        self.editor.group_list.setCurrentRow(0)
+        self.assertEqual(self.screen_entries(),
+                         [("0 — 1920×1080", 0), ("1 — 1280×1024", 1)])
+
+    def test_it_shows_the_screen_the_group_is_on(self):
+        self.config_path.write_text(CONFIG + '\nscreen = 1\n')
+        self.editor = self.make_editor()
+        self.editor.group_list.setCurrentRow(2)
+        self.assertEqual(self.editor.screen_box.currentData(), 1)
+
+    def test_choosing_a_screen_moves_the_group(self):
+        self.editor.group_list.setCurrentRow(0)
+        self.editor.screen_box.setCurrentIndex(1)
+        self.assertEqual(self.editor._current_group().screen, 1)
+        self.assertTrue(self.editor.dirty)
+
+    def test_the_choice_survives_a_save(self):
+        self.editor.group_list.setCurrentRow(0)
+        self.editor.screen_box.setCurrentIndex(1)
+        self.editor._save()
+        reloaded = groups.load_config(self.config_path)
+        self.assertEqual([g.screen for g in reloaded.groups], [1, 0, 0])
+
+    def test_switching_groups_does_not_mark_the_config_dirty(self):
+        """Filling the picker must not read as the user having chosen."""
+        self.editor.group_list.setCurrentRow(0)
+        self.editor.group_list.setCurrentRow(1)
+        self.assertFalse(self.editor.dirty)
+
+    def test_a_group_keeps_a_screen_that_is_not_plugged_in(self):
+        """Unplugging a monitor is not a decision to move what was on it."""
+        self.config_path.write_text(CONFIG + '\nscreen = 3\n')
+        self.set_screens([(1920, 1080)])
+        self.editor = self.make_editor()
+        self.editor.group_list.setCurrentRow(2)
+        self.assertEqual(self.editor.screen_box.currentData(), 3)
+        self.assertIn("not connected", self.editor.screen_box.currentText())
+        self.editor._save()
+        self.assertEqual(groups.load_config(self.config_path).groups[2].screen, 3)
+
+    def test_the_editor_opens_with_no_plasmashell_to_ask(self):
+        self.set_screens([], fail=True)
+        self.editor = self.make_editor()
+        self.editor.group_list.setCurrentRow(0)
+        self.assertEqual(self.screen_entries(), [("screen 0", 0)])
+
+    def test_the_group_list_says_which_screen_when_it_is_not_the_first(self):
+        self.config_path.write_text(CONFIG + '\nscreen = 1\n')
+        self.editor = self.make_editor()
+        labels = [self.editor.group_list.item(r).text()
+                  for r in range(self.editor.group_list.count())]
+        self.assertEqual(labels, ["Dev", "Web", "Media   · screen 1"])
+
+    def test_one_screen_is_not_worth_labelling(self):
+        self.set_screens([(1920, 1080)])
+        self.editor = self.make_editor()
+        self.assertEqual(self.editor.group_list.item(0).text(), "Dev")
