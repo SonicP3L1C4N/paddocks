@@ -36,7 +36,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 2 | [524243](https://bugs.kde.org/show_bug.cgi?id=524243) `Folder View widget` | **RESOLVED WONTFIX** | Intentional both ways: `file://` withholds `Name=` on purpose, and `desktop:/` exists partly *to* show it. Accepted trade-off, not an oversight. |
 | 3 | [362511](https://bugs.kde.org/show_bug.cgi?id=362511) `Scripting` | CONFIRMED, no reply | Comment #5 stands. Nothing to do but watch. |
 | 4 | [524244](https://bugs.kde.org/show_bug.cgi?id=524244) `general` | **RESOLVED WONTFIX** | "Works for me": the tool did apply the theme and exiting 0 is correct; the later reset is the automatic switcher doing its job. The report's actual complaint — that `plasmarc` is left disagreeing with the screen with no warning — was not addressed. |
-| 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | UNCONFIRMED, no reply | Nobody looked at it, and on 2026-08-21 **it turned out to be wrong too** — see below. Needs retracting. |
+| 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | **RESOLVED / INVALID** 2026-08-21 | Nobody ever looked at it, and it was wrong: the cache does check per-file mtimes. Retracted by the reporter as comment #1 and closed. |
 | 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **RESOLVED / INVALID** 2026-08-21 | Was CONFIRMED, with an invitation to submit a removal MR. Tested instead; the premise was wrong. Retracted by the reporter as comment #3 and closed. |
 | 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | **UNCONFIRMED**, answered 2026-08-21 | "Why? What's the use case for this?" — answered as comment #2 with the narrowed ask, and the status cleared off NEEDSINFO by hand. Open and waiting on triage. |
 
@@ -230,7 +230,12 @@ paragraph above -- silently drops the blurred-mask-* elements unless they think
 to copy the translucent variant too.
 ```
 
-### For 524245 — retraction
+### For 524245 — retraction — **POSTED 2026-08-21**
+
+Posted as comment #1 and resolved **RESOLVED / INVALID** — INVALID rather than
+WORKSFORME because the report asserted a mechanism ("no mtime or content check")
+that demonstrably exists, which is a wrong premise rather than an unreproducible
+symptom. Same resolution as 524246, which was the same mistake.
 
 **Tested 2026-08-21, and it does not reproduce.** The report claims the theme
 pixmap cache is keyed by name only, with "no mtime or content check", so an
