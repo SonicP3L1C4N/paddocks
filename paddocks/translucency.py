@@ -6,10 +6,10 @@
 
 The fragile half of the project, deliberately separate from the groups. Plasma
 has no widget background opacity setting -- the frame is painted from the
-desktop theme's ``widgets/background`` SVG (see BasicAppletContainer.qml in
+desktop theme's applet background SVG (see BasicAppletContainer.qml in
 plasma-workspace), so the only way to change it is to edit that artwork.
 
-Two traps live here:
+Three traps live here:
 
 1. Distros with ``AutomaticLookAndFeel=true`` (Kubuntu among them) let the
    look-and-feel package re-assert its own desktop theme, silently overriding
@@ -19,6 +19,19 @@ Two traps live here:
    over /usr/share.
 2. Theme pixmap caches are keyed by theme name. Since we keep the name, the
    cache must be cleared or Plasma serves the old artwork forever.
+3. A theme has *two* applet backgrounds, and overriding one hides the other.
+   ``ThemePrivate::updateKSvgSelectors()`` sets the KSvg selector
+   ``translucent`` whenever compositing and blur are both active, and KSvg
+   then resolves ``translucent/widgets/background`` ahead of
+   ``widgets/background`` -- within a theme, before falling through to the
+   fallback theme. Breeze's translucent variant is not a copy: it is less
+   opaque and carries nine ``blurred-mask-*`` elements, which are what tell
+   KWin the region to blur behind the widget. Shadowing only the plain asset
+   therefore drops the blur silently, so both get patched.
+
+   That last one was reported upstream as bug 524246 -- as the *opposite*
+   claim, that the translucent asset was dead. It is not; see
+   docs/plasma-bugs.md.
 """
 
 from __future__ import annotations
@@ -32,6 +45,8 @@ from . import plasma
 
 FRAME_ELEMENTS = ("center", "top", "bottom", "left", "right",
                   "topleft", "topright", "bottomleft", "bottomright")
+
+TRANSLUCENT_BACKGROUND = "translucent/widgets/background"
 
 USER_THEMES = Path.home() / ".local/share/plasma/desktoptheme"
 SYSTEM_THEME_DIRS = [Path("/usr/local/share/plasma/desktoptheme"),
@@ -111,7 +126,7 @@ def _system_theme_dir(name: str) -> Path | None:
     return None
 
 
-def _source_background(theme: str) -> Path:
+def _source_asset(theme: str, subpath: str) -> Path | None:
     """Pristine artwork for a theme, never our own patched copy.
 
     Most distro themes are sparse -- they ship colours and fall back to
@@ -121,11 +136,18 @@ def _source_background(theme: str) -> Path:
         directory = _system_theme_dir(name)
         if not directory:
             continue
-        for candidate in (directory / "widgets/background.svgz",
-                          directory / "widgets/background.svg"):
+        for suffix in (".svgz", ".svg"):
+            candidate = directory / (subpath + suffix)
             if candidate.exists():
                 return candidate
-    raise RuntimeError("could not find a source widgets/background asset")
+    return None
+
+
+def _source_background(theme: str) -> Path:
+    asset = _source_asset(theme, "widgets/background")
+    if asset is None:
+        raise RuntimeError("could not find a source widgets/background asset")
+    return asset
 
 
 def _patch_svg(data: str, opacity: float) -> tuple[str, int]:
@@ -140,6 +162,14 @@ def _patch_svg(data: str, opacity: float) -> tuple[str, int]:
         return tag[:-1].rstrip() + f' opacity="{opacity}">'
 
     return _G_TAG.sub(replace, data), patched
+
+
+def _write_background(directory: Path, svg: str) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    with gzip.open(directory / "background.svgz", "wb", compresslevel=9) as fh:
+        fh.write(svg.encode())
+    # A plain .svg alongside would win over our .svgz.
+    (directory / "background.svg").unlink(missing_ok=True)
 
 
 def _read(path: Path) -> str:
@@ -169,12 +199,16 @@ def apply(opacity: float, restart: bool = True) -> list[str]:
             for item in target_dir.rglob("*"):
                 item.chmod(item.stat().st_mode | 0o200)
 
-        widgets = target_dir / "widgets"
-        widgets.mkdir(parents=True, exist_ok=True)
-        with gzip.open(widgets / "background.svgz", "wb", compresslevel=9) as fh:
-            fh.write(patched.encode())
-        # A plain .svg alongside would win over our .svgz.
-        (widgets / "background.svg").unlink(missing_ok=True)
+        _write_background(target_dir / "widgets", patched)
+
+        # And the blur-aware variant, or turning down the opacity turns off the
+        # blur. See _patch_translucent_variant.
+        translucent_source = _source_asset(theme, TRANSLUCENT_BACKGROUND)
+        if translucent_source is not None:
+            variant, count = _patch_svg(_read(translucent_source), opacity)
+            if count:
+                _write_background(target_dir / "translucent" / "widgets", variant)
+
         touched.append(theme)
 
     _reload(restart)

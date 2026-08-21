@@ -385,7 +385,10 @@ shows a directory. Use two groups.
 
 **`translucency` shadows system themes.** While the shadow copies exist, distro
 updates to those themes stop reaching you. That is why it is a separate command
-from the groups — skip it if the trade is not worth it.
+from the groups — skip it if the trade is not worth it. It patches both applet
+background variants (`widgets/background` and `translucent/widgets/background`),
+because patching only the first turns the blur behind your widgets off without
+saying so — see finding 5.
 
 **`apply` rewrites, it does not merge.** It removes the widgets it made last
 time (tracked in `~/.local/state/paddocks/state.json`) and rebuilds from the
