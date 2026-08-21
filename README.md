@@ -317,7 +317,7 @@ rm -f ~/.cache/plasma_theme_*.kcache ~/.cache/ksvg-elements
 </details>
 
 <details>
-<summary><b>5. <code>widgets/background</code> is the applet frame; <code>translucent/</code> is dead</b></summary>
+<summary><b>5. A theme has two applet backgrounds, and the second one is invisible</b></summary>
 
 There is no opacity setting for widget backgrounds anywhere in Plasma. The frame
 is a theme SVG, selected in `BasicAppletContainer.qml`:
@@ -327,17 +327,45 @@ if (effectiveBackgroundHints & TranslucentBackground) return "widgets/translucen
 else if (effectiveBackgroundHints & StandardBackground) return "widgets/background";
 ```
 
-Desktop widgets take the `StandardBackground` path.
-`translucent/widgets/background.svgz` exists in every theme and is referenced by
-nothing — patching it, the obvious first guess, changes nothing.
+Desktop widgets take the `StandardBackground` path. To make that frame
+transparent, add an `opacity` attribute to the nine `<g>` elements `center`,
+`top`, `bottom`, `left`, `right` and the four corners. Ancestor opacity is not
+applied when Qt renders an SVG by element id, so setting it on the root `<svg>`
+does nothing. Leave the `shadow-*` elements alone so groups still read against a
+busy wallpaper.
 
-To make the frame transparent, add an `opacity` attribute to the nine `<g>`
-elements `center`, `top`, `bottom`, `left`, `right` and the four corners.
-Ancestor opacity is not applied when Qt renders an SVG by element id, so setting
-it on the root `<svg>` does not work either. Leave the `shadow-*` elements alone
-so panels still read against a busy wallpaper. Most distro themes are sparse and
-fall back to `default` for artwork, so the file to copy and patch is usually
-`/usr/share/plasma/desktoptheme/default/widgets/background.svgz`.
+**And patch `translucent/widgets/background.svgz` as well as
+`widgets/background.svgz`.** This is the part that is genuinely hidden. Themes
+ship both, nothing references the second by name, and which one you get is
+decided at runtime:
+
+* `ThemePrivate::updateKSvgSelectors()` in libplasma sets the KSvg *selector*
+  `translucent` whenever compositing and the blur effect are both active, and
+  `opaque` when compositing is off.
+* `ImageSetPrivate::findInImageSet()` in KSvg then resolves
+  `<theme>/<selector>/<image>` **ahead of** `<theme>/<image>`, and does that
+  within a theme before falling through to the fallback theme.
+
+So on a normal blurred Wayland desktop, `translucent/widgets/background.svgz` is
+the file actually being drawn. It is not a copy of the plain one: it is less
+opaque and carries nine `blurred-mask-*` elements, which are what tell KWin the
+region to blur behind the widget. Shadow only the plain asset and you get your
+opacity *and* silently lose the blur, with nothing to indicate why.
+
+There is a second trap inside that one. Because the selector search finishes the
+current theme before moving on, a sparse theme that overrides only
+`widgets/background.svgz` — which is what Kubuntu's own theme does — beats
+Breeze's translucent variant outright. Patch a file in the *fallback* theme and
+nothing happens at all, because the resolved path never reaches it.
+
+**This one was reported wrong.** [Bug 524246](https://bugs.kde.org/show_bug.cgi?id=524246)
+claimed `translucent/widgets/background.svgz` was referenced by nothing, on the
+evidence that patching it changed nothing. It was CONFIRMED upstream, with an
+invitation to submit a merge request deleting the files. The invitation is what
+made it worth checking properly: dropping an obviously-wrong magenta background
+into the *active* theme's `translucent/` directory turned every widget frame
+magenta immediately. The original test had patched a file that was never on the
+resolved path. Retracting it is in `docs/plasma-bugs.md`.
 
 </details>
 
