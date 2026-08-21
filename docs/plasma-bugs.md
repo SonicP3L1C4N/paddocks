@@ -37,7 +37,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 3 | [362511](https://bugs.kde.org/show_bug.cgi?id=362511) `Scripting` | CONFIRMED, no reply | Comment #5 stands. Nothing to do but watch. |
 | 4 | [524244](https://bugs.kde.org/show_bug.cgi?id=524244) `general` | **RESOLVED WONTFIX** | "Works for me": the tool did apply the theme and exiting 0 is correct; the later reset is the automatic switcher doing its job. The report's actual complaint — that `plasmarc` is left disagreeing with the screen with no warning — was not addressed. |
 | 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | UNCONFIRMED, no reply | Nobody looked at it, and on 2026-08-21 **it turned out to be wrong too** — see below. Needs retracting. |
-| 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **CONFIRMED** — "Feel free to submit a merge request removing it." | An open invitation to contribute. **But see the correction below: the premise now looks wrong.** |
+| 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **RESOLVED / INVALID** 2026-08-21 | Was CONFIRMED, with an invitation to submit a removal MR. Tested instead; the premise was wrong. Retracted by the reporter as comment #3 and closed. |
 | 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | **NEEDSINFO** since 2026-08-14 | "Why? What's the use case for this?" — unanswered for a week. Needs a reply. |
 
 ### The 524246 problem, found 2026-08-21
@@ -116,7 +116,19 @@ opts every widget out of Plasma's blur-aware background. Nothing reports it.
 
 Plain text, because Bugzilla does not render markdown.
 
-### For 524246 — retraction
+### For 524246 — retraction — **POSTED 2026-08-21**
+
+Posted as comment #3 and resolved **RESOLVED / INVALID**. Gary trimmed it on the
+way in; the draft below is what was written, not verbatim what is on the bug.
+
+One paragraph was cut, and it is the only part that pointed forward rather than
+backward — that the two Breeze assets are not copies of each other, and that a
+theme overriding only `widgets/background.svgz` therefore drops the nine
+`blurred-mask-*` elements and silently opts its widgets out of the blur. That
+observation is now recorded **nowhere upstream**. Fair enough on a bug being
+closed INVALID, where nobody is likely to read it. If it is worth raising, it
+wants its own report against the Breeze theme or a note on the discuss thread —
+not a comment on a dead bug.
 
 ```text
 I need to retract this, and I am glad I tested before opening the merge request:
@@ -162,7 +174,7 @@ invisible when it goes wrong.
 Sorry for the noise on this one.
 ```
 
-Resolve it as INVALID at the same time, or ask for it to be closed. Leaving a
+Resolved INVALID by the reporter at the same time, which is right: leaving a
 CONFIRMED bug standing on a premise its own reporter has disproved is worse than
 having filed it.
 
