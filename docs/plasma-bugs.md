@@ -38,7 +38,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 4 | [524244](https://bugs.kde.org/show_bug.cgi?id=524244) `general` | **RESOLVED WONTFIX** | "Works for me": the tool did apply the theme and exiting 0 is correct; the later reset is the automatic switcher doing its job. The report's actual complaint — that `plasmarc` is left disagreeing with the screen with no warning — was not addressed. |
 | 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | UNCONFIRMED, no reply | Nobody looked at it, and on 2026-08-21 **it turned out to be wrong too** — see below. Needs retracting. |
 | 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **RESOLVED / INVALID** 2026-08-21 | Was CONFIRMED, with an invitation to submit a removal MR. Tested instead; the premise was wrong. Retracted by the reporter as comment #3 and closed. |
-| 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | NEEDSINFO, **answered 2026-08-21** | "Why? What's the use case for this?" — answered as comment #2 with the narrowed ask. Status still needs setting back to REPORTED by hand. |
+| 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | **UNCONFIRMED**, answered 2026-08-21 | "Why? What's the use case for this?" — answered as comment #2 with the narrowed ask, and the status cleared off NEEDSINFO by hand. Open and waiting on triage. |
 
 ### The 524246 problem, found 2026-08-21
 
@@ -180,9 +180,10 @@ having filed it.
 
 ### For 524247 — answering "what's the use case?" — **POSTED 2026-08-21**
 
-Posted as comment #2, trimmed. **The bug was still NEEDSINFO / WAITINGFORINFO
-afterwards** — a comment does not clear that state on KDE Bugzilla, the status
-has to be set back to REPORTED by hand.
+Posted as comment #2, trimmed. **A comment does not clear NEEDSINFO on KDE
+Bugzilla** — the status had to be moved by hand afterwards, and it now sits at
+UNCONFIRMED with no resolution, which is an ordinary open wishlist waiting on
+triage rather than a report waiting on its reporter.
 
 What was trimmed loses nothing: the nine-`<g>` implementation constraint and the
 "ancestor opacity is not applied when rendering by element id" finding are

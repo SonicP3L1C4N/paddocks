@@ -22,7 +22,7 @@ and nothing in this repo claims something Bugzilla contradicts.
 
 | Item | Done when |
 |---|---|
-| **524247** (NEEDSINFO, wishlist) | ~~Nate's "what's the use case?" is answered.~~ **Answered 2026-08-21** as comment #2. Not finished until the status is moved off NEEDSINFO/WAITINGFORINFO, which a comment does not do — that state is the one that gets closed for inactivity. |
+| **524247** (NEEDSINFO, wishlist) | ~~Nate's "what's the use case?" is answered.~~ **Done 2026-08-21** — answered as comment #2, and the status moved off NEEDSINFO by hand (a comment does not do it) to UNCONFIRMED. Nothing further owed; it waits on triage now. |
 | **524246** (CONFIRMED, MR invited) | ~~The selector experiment has been run.~~ **Run 2026-08-21: the report is wrong**, the assets are live. ~~Done when the retraction is posted and the bug resolved INVALID.~~ **Done** — comment #3, RESOLVED/INVALID, 2026-08-21. No MR. |
 | **524245** (UNCONFIRMED, ignored) | ~~One follow-up comment with a cleaner reproduction.~~ **Tested 2026-08-21 and it does not reproduce** — three variants, including a backdated mtime. Done when the retraction is posted and it is closed. Two of the seven reports retracted by their own reporter is not a good look, but posting neither would be worse. |
 | **524242** (FIXED) | README finding 1 says it is fixed in KIO master and absent from 6.24 LTS, and the workaround stays for LTS users. |
