@@ -16,6 +16,12 @@ The account was auto-held first — Discourse caps trust-level-0 users at two li
 per post and this one had eight, all but one of them to KDE's own Bugzilla. A
 moderator approved it.
 
+**Out of date on purpose.** This is the archive of what was posted, so the body
+below is left alone even where it has since been overtaken. As of 2026-08-21:
+multi-monitor *is* handled, and two of the six reports it points at — 524245 and
+524246 — have been retracted and closed INVALID by their own reporter after
+testing. `plasma-bugs.md` is the live record; this file is a snapshot.
+
 **Defect in post #1, corrected in post #2:** it went up without backticks around
 `ItemGeometries-<W>x<H>`, so Discourse stripped `<W>` and `<H>` as unknown HTML
 tags and the line renders as `ItemGeometries-x`. Editing was not an option — at

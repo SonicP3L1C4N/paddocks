@@ -109,7 +109,7 @@ widget for files and the wrong one for launchers, for the reasons in gotcha #1.
 `paddocks edit` does the same job in a window: groups on the left, the selected
 group's applications in the middle, everything installed on the right.
 
-![The editor: groups, group contents, and the installed application list](docs/editor.png)
+![The editor: groups on the left, the selected group's applications and its screen in the middle, everything installed on the right](docs/editor.png)
 
 Drag within either list to reorder, drag a group up or down to change where it
 lands on screen, double-click an application to add or remove it. **Add folder**
@@ -130,6 +130,11 @@ comments are a dependency nothing else here needs.
 
 ### Screens
 
+Groups can be spread across monitors — five here on a 3440×1440 ultrawide, three
+on a 2560×1440 beside it:
+
+![Eight groups across two monitors: five on the ultrawide, three on the second screen](docs/two-screens.png)
+
 A group goes on Plasma's first screen unless it says otherwise:
 
 ```toml
@@ -139,9 +144,15 @@ screen = 1
 apps = ["code", "org.kde.konsole"]
 ```
 
-`paddocks edit` has the same choice as a picker on each group, which saves
-looking the index up. The index is Plasma's own numbering, which follows neither
-the physical arrangement nor which monitor you think of as primary. Ask:
+The editor has the same choice as a picker on each group, which saves looking the
+index up. Groups that are not on the first screen say so in the list, so you can
+see where everything is without clicking through them:
+
+![The editor's group list marking three groups as being on screen 1, and the Screen picker showing "1 — 2560×1440"](docs/screen-picker.png)
+
+The index is Plasma's own numbering, which follows neither the physical
+arrangement nor which monitor you think of as primary — the picker spells out
+each one's size for that reason. On the command line, ask:
 
 ```
 $ paddocks screens
@@ -149,15 +160,29 @@ screen 0    3440x1440  containment 1
 screen 1    2560x1440  containment 247
 ```
 
-A group configured for a monitor that is not plugged in keeps it — in the config
-and in the editor, which shows it as *not connected* rather than resetting it.
-Unplugging a monitor is not a decision to move what was on it.
+**A group configured for a monitor that is not plugged in keeps it** — in the
+config, and in the editor, which shows it as *not connected* rather than
+resetting it. Unplugging a monitor is not a decision to move what was on it, and
+silently rewriting the group to screen 0 would make that decision permanent on
+the next save.
 
 Each screen is solved as its own layout against its own size, so groups wrap
-where that screen runs out rather than where the widest one does. Positions are
-written per containment under an `ItemGeometries-<W>x<H>` key naming that
-screen's resolution — a key naming any other size is not read at all, which is
-why the containment has to be matched to the screen rather than assumed.
+where that screen runs out rather than where the widest one does, and the
+coordinates start again from that screen's own top-left corner.
+
+Underneath, this is three things that each fail silently if you get them wrong:
+
+* **`desktops()` is not ordered by screen**, and holds one containment per screen
+  *per activity* — only the ones on the current activity report a real `screen`.
+  Indexing that list is how widgets end up on the wrong monitor. Match on the
+  `screen` property instead.
+* **`ItemGeometries` is keyed by resolution.** Positions for a 2560×1440 screen
+  have to go under `ItemGeometries-2560x1440` in *that screen's* containment. A
+  key naming any other size is not read at all — the widgets are created, and
+  then sit wherever the shell auto-placed them.
+* **Removing a widget means sweeping every containment.** A widget on the second
+  monitor is not in the first containment's `widgetIds`, so looking only there
+  reports it as removed without removing it.
 
 ### App ids
 
