@@ -67,6 +67,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="opacity 0-1 (e.g. 0.4), or 'reset'")
 
     sub.add_parser("status", help="show what is currently set up")
+    sub.add_parser("screens", help="list the screens Plasma reports, and their "
+                                   "containments")
 
     return parser
 
@@ -150,13 +152,23 @@ def dispatch(args) -> int:
         print(f"Patched at opacity {opacity}:", ", ".join(touched))
         return 0
 
+    if args.command == "screens":
+        # The index is what a group's `screen =` key means, and it is Plasma's
+        # numbering rather than the order the monitors sit on the desk -- so
+        # printing it is the difference between guessing and checking.
+        for screen in plasma.screens():
+            print(f"screen {screen.index}  {screen.resolution:>11}  "
+                  f"containment {screen.containment}")
+        return 0
+
     if args.command == "status":
         state = groups.read_state()
         if not state.get("widgets"):
             print("No groups currently created.")
         else:
-            print(f"Containment {state.get('containment', '?')} "
-                  f"@ {state.get('resolution', '?')}")
+            for placed in state.get("screens", []):
+                print(f"Screen {placed['screen']}: containment "
+                      f"{placed['containment']} @ {placed['resolution']}")
             for widget in state["widgets"]:
                 print(f"  {widget['name']:<20} applet {widget['id']}")
         print("Themes shadowed:",

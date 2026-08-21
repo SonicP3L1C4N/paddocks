@@ -44,13 +44,27 @@ def write_desktop(directory: Path, app_id: str, name: str = "", *,
 class FakePlasma:
     """A stand-in for the plasma module, recording what it was asked to do."""
 
-    # Re-exported so `except plasma.WidgetCreationError` still matches.
+    # Re-exported so `except plasma.WidgetCreationError` still matches, and so
+    # production code can build a plasma.Screen through the fake.
     PlasmaError = plasma.PlasmaError
     WidgetCreationError = plasma.WidgetCreationError
+    Screen = plasma.Screen
 
     def __init__(self, state_dir: Path, fail_in: str | None = None,
-                 widget_ids: list[int] | None = None):
+                 widget_ids: list[int] | None = None,
+                 screens: list[tuple[int, int]] | None = None):
+        """`screens` is [(width, height), ...]; one 1920x1080 screen by default.
+
+        Containment ids are 1, 2, 3... which is deliberately *not* the screen
+        index -- a fake that numbered them the same way would hide exactly the
+        confusion the real code has to get right.
+        """
         self.STATE_DIR = state_dir
+        self._screens = [
+            plasma.Screen(i, w, h, i + 1)
+            for i, (w, h) in enumerate(screens or [(1920, 1080)])
+        ]
+        self.built: list[tuple[int, list[dict]]] = []
         self.calls: list[str] = []
         self._fail_in = fail_in
         self._widget_ids = widget_ids
@@ -60,13 +74,9 @@ class FakePlasma:
         if name == self._fail_in:
             raise OSError(f"simulated failure in {name}")
 
-    def screen_geometry(self, index: int = 0):
-        self._record("screen_geometry")
-        return (1920, 1080)
-
-    def desktop_containment(self):
-        self._record("desktop_containment")
-        return 1
+    def screens(self):
+        self._record("screens")
+        return list(self._screens)
 
     def add_quicklaunch_widgets(self, entries):
         self._record("add_quicklaunch_widgets")
@@ -74,13 +84,16 @@ class FakePlasma:
             return list(self._widget_ids)
         return [100 + i for i in range(len(entries))]
 
-    def add_group_widgets(self, specs):
+    def add_group_widgets(self, specs, containment=None):
         self._record("add_group_widgets")
-        # Kept so tests can assert which plugin each group asked for.
+        # Kept so tests can assert which plugin each group asked for, and which
+        # containment it was asked of.
         self.specs = list(specs)
+        self.built.append((containment, list(specs)))
         if self._widget_ids is not None:
             return list(self._widget_ids)
-        return [100 + i for i in range(len(specs))]
+        base = 100 + sum(len(b) for _, b in self.built[:-1])
+        return [base + i for i in range(len(specs))]
 
     def remove_widgets(self, applet_ids):
         self._record("remove_widgets")
@@ -102,6 +115,8 @@ class FakePlasma:
 
     def write_item_geometries(self, containment, resolution, geometry):
         self._record("write_item_geometries")
+        self.geometries = getattr(self, "geometries", [])
+        self.geometries.append((containment, resolution, geometry))
 
     @property
     def shell_calls(self) -> list[str]:

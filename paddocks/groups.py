@@ -21,7 +21,7 @@ STATE_FILE = plasma.STATE_DIR / "state.json"
 
 TOP_LEVEL_KEYS = {"settings", "group"}
 SETTINGS_KEYS = set(Metrics.__dataclass_fields__) | {"arrangement", "strict"}
-GROUP_KEYS = {"name", "apps", "path", "cells"}
+GROUP_KEYS = {"name", "apps", "path", "cells", "screen"}
 
 
 @dataclass
@@ -31,12 +31,16 @@ class Group:
     `path` makes it a folder group -- a Folder View onto a real directory,
     which keeps up with the directory's contents rather than snapshotting
     them. `apps` and `path` are mutually exclusive; a group is one or other.
+
+    `screen` is a Plasma screen index. It defaults to 0, so a single-monitor
+    config written before any of this existed still means what it meant.
     """
 
     name: str
     apps: list[str]
     path: str | None = None
     cells: int = FOLDER_CELLS
+    screen: int = 0
 
     @property
     def is_folder(self) -> bool:
@@ -144,13 +148,23 @@ def _load_group(raw: dict, position: int, path: Path) -> Group:
             f"{where} ({name}): `cells` must be a whole number of icon slots "
             f"of 1 or more, got {raw.get('cells')!r}"
         )
+    screen = raw.get("screen", 0)
+    if isinstance(screen, bool) or not isinstance(screen, int) or screen < 0:
+        raise ConfigError(
+            f"{where} ({name}): `screen` must be a screen index of 0 or more, "
+            f"got {raw.get('screen')!r}. Screen 0 is the one Plasma lists "
+            "first, which is not always the one you think of as primary -- "
+            "`paddocks screens` prints the list."
+        )
+
     if "cells" in raw and folder is None:
         raise ConfigError(
             f"{where} ({name}): `cells` sizes a folder group, but this group "
             "has no `path`. An app group is sized from how many apps it lists."
         )
 
-    return Group(name=name.strip(), apps=list(app_ids), path=folder, cells=cells)
+    return Group(name=name.strip(), apps=list(app_ids), path=folder,
+                 cells=cells, screen=screen)
 
 
 def _warnings(groups: list[Group]) -> list[str]:
@@ -283,9 +297,10 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> Non
     for warning in cfg.warnings:
         print(f"warning: {warning}")
 
+    screens = plasma.screens()
+    known = {s.index: s for s in screens}
+
     index = apps.build()
-    screen = plasma.screen_geometry()
-    resolution = f"{screen[0]}x{screen[1]}"
 
     resolved: list[tuple[Group, list[str]]] = []
     misses: list[str] = []
@@ -296,16 +311,40 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> Non
         misses += group_misses
         swaps += group_swaps
 
-    counts = [(g.name, g.cells if g.is_folder else len(urls), g.is_folder)
-              for g, urls in resolved]
-    boxes = solve(counts, screen, cfg.metrics, cfg.arrangement)
+    wanted = sorted({g.screen for g, _ in resolved})
+    unknown = [i for i in wanted if i not in known]
+    if unknown:
+        available = ", ".join(f"{s.index} ({s.resolution})" for s in screens)
+        raise ValueError(
+            f"group(s) ask for screen {unknown}, and Plasma reports "
+            f"{len(screens)}: {available}. Screen indexes are Plasma's, not "
+            "the order the monitors sit on the desk."
+        )
 
-    print(f"Screen {resolution}, arrangement {cfg.arrangement!r}")
-    for box, (group, urls) in zip(boxes, resolved):
-        held = (f"folder {group.expanded_path()}" if group.is_folder
-                else f"{len(urls):>2} apps")
-        print(f"  {box.name:<20} {held}   {box.x},{box.y}  "
-              f"{box.w}x{box.h}  {box.rows} row(s)")
+    # Each screen is laid out on its own, in config order, against its own
+    # size. Coordinates in ItemGeometries are containment-local, so a group on
+    # the second screen starts from 0,0 again rather than from its x offset in
+    # the combined desktop.
+    plan: list[tuple[plasma.Screen, list[tuple[Group, list[str], object]]]] = []
+    for target in screens:
+        members = [(g, urls) for g, urls in resolved if g.screen == target.index]
+        if not members:
+            continue
+        counts = [(g.name, g.cells if g.is_folder else len(urls), g.is_folder)
+                  for g, urls in members]
+        boxes = solve(counts, (target.width, target.height),
+                      cfg.metrics, cfg.arrangement)
+        plan.append((target, [(g, urls, box)
+                              for (g, urls), box in zip(members, boxes)]))
+
+    for target, items in plan:
+        print(f"Screen {target.index} ({target.resolution}), containment "
+              f"{target.containment}, arrangement {cfg.arrangement!r}")
+        for group, urls, box in items:
+            held = (f"folder {group.expanded_path()}" if group.is_folder
+                    else f"{len(urls):>2} apps")
+            print(f"  {box.name:<20} {held}   {box.x},{box.y}  "
+                  f"{box.w}x{box.h}  {box.rows} row(s)")
     for item in swaps:
         print(f"  ~~ matched by name: {item}")
     for item in misses:
@@ -332,28 +371,44 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> Non
         _record(state, [], [])
 
     print("Creating widgets")
-    names = [g.name for g, _ in resolved]
-    try:
-        ids = plasma.add_group_widgets([
+    names: list[str] = []
+    created: list[int] = []
+    placed: list[tuple[plasma.Screen, list[int], list]] = []
+    for target, items in plan:
+        specs = [
             {"kind": "folder", "title": g.name, "url": g.expanded_path().as_uri()}
             if g.is_folder else
             {"kind": "apps", "title": g.name, "urls": urls, "rows": box.rows}
-            for (g, urls), box in zip(resolved, boxes)
-        ])
-    except plasma.WidgetCreationError as exc:
-        if exc.ids:
-            _record(state, names, exc.ids)
-            print(f"{len(exc.ids)} widget(s) were created before the failure and "
-                  "have been recorded; `paddocks remove` will clean them up.")
-        raise
+            for g, urls, box in items
+        ]
+        here = [g.name for g, _, _ in items]
+        try:
+            ids = plasma.add_group_widgets(specs, target.containment)
+        except plasma.WidgetCreationError as exc:
+            # Everything already built, on this screen and on any before it,
+            # goes into state -- otherwise `remove` cannot reach the widgets
+            # that a half-finished run left on the desktop.
+            created += exc.ids
+            names += here[:len(exc.ids)]
+            if created:
+                _record(state, names, created)
+                print(f"{len(created)} widget(s) were created before the "
+                      "failure and have been recorded; `paddocks remove` will "
+                      "clean them up.")
+            raise
+        names += here
+        created += ids
+        placed.append((target, ids, [box for _, _, box in items]))
 
-    state["containment"] = plasma.desktop_containment()
-    state["resolution"] = resolution
-    _record(state, names, ids)
-
-    geometry = plasma.format_geometries(
-        [(applet, b.x, b.y, b.w, b.h) for applet, b in zip(ids, boxes)]
-    )
+    # Superseded by "screens" -- dropped so an old state file stops claiming a
+    # single containment once groups are spread across several.
+    state.pop("containment", None)
+    state.pop("resolution", None)
+    state["screens"] = [
+        {"screen": t.index, "containment": t.containment, "resolution": t.resolution}
+        for t, _, _ in placed
+    ]
+    _record(state, names, created)
 
     print("Positioning (restarting plasmashell)")
     backup = None
@@ -362,11 +417,17 @@ def apply(cfg: Config, dry_run: bool = False, strict: bool | None = None) -> Non
     # leave it down -- no panels, no desktop -- until it was started by hand.
     try:
         backup = plasma.backup_appletsrc()
-        plasma.write_item_geometries(state["containment"], resolution, geometry)
+        for target, ids, boxes in placed:
+            geometry = plasma.format_geometries(
+                [(applet, b.x, b.y, b.w, b.h) for applet, b in zip(ids, boxes)]
+            )
+            plasma.write_item_geometries(target.containment, target.resolution,
+                                         geometry)
     finally:
         plasma.start()
 
-    print(f"\nDone. {len(ids)} groups placed.")
+    print(f"\nDone. {len(created)} groups placed across "
+          f"{len(placed)} screen(s).")
     if backup:
         print(f"Previous desktop layout backed up to {backup}")
 
@@ -453,6 +514,8 @@ def dump_config(cfg: Config, index: apps.Index | None = None,
 
     for group in cfg.groups:
         lines += ["", "[[group]]", f"name = {_toml_value(group.name)}"]
+        if group.screen:
+            lines.append(f"screen = {group.screen}")
         if group.is_folder:
             lines.append(f"path = {_toml_value(group.path)}")
             if group.cells != FOLDER_CELLS:

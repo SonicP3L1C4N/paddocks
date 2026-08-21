@@ -126,6 +126,32 @@ order. **Hand-written comments do not survive that.** Python has no
 standard-library TOML writer, and the round-trip libraries that preserve
 comments are a dependency nothing else here needs.
 
+### Screens
+
+A group goes on Plasma's first screen unless it says otherwise:
+
+```toml
+[[group]]
+name = "Dev Tools"
+screen = 1
+apps = ["code", "org.kde.konsole"]
+```
+
+The index is Plasma's own numbering, which follows neither the physical
+arrangement nor which monitor you think of as primary. Ask:
+
+```
+$ paddocks screens
+screen 0    3440x1440  containment 1
+screen 1    2560x1440  containment 247
+```
+
+Each screen is solved as its own layout against its own size, so groups wrap
+where that screen runs out rather than where the widest one does. Positions are
+written per containment under an `ItemGeometries-<W>x<H>` key naming that
+screen's resolution — a key naming any other size is not read at all, which is
+why the containment has to be matched to the screen rather than assumed.
+
 ### App ids
 
 Ids do not have to be the exact `.desktop` filename. The same application is
@@ -148,6 +174,7 @@ nearest ids instead of just failing:
 | `paddocks apply` | build the groups — `--dry-run`, `--strict`, `--no-strict` |
 | `paddocks edit` | the editor window |
 | `paddocks status` | what is currently set up |
+| `paddocks screens` | the screens Plasma reports, and their containments |
 | `paddocks remove` | take the groups away again |
 | `paddocks translucency 0.4` | widget background opacity, lower is more transparent; `reset` to undo |
 | `paddocks install-desktop` | menu entry and icon — `--remove`, `--variant dark\|light` |
@@ -271,7 +298,11 @@ plasmashell &
 ```
 
 Also note `evaluateScript` only reliably returns `print()` output — a bare
-trailing expression usually comes back empty.
+trailing expression usually comes back empty. And **`print()` does not append a
+newline**, so two calls come back glued into one string: printing `count=2` and
+then `0: id=1` gives you `count=20: id=1`. Anything returning more than one value
+has to emit its own separator; splitting on lines silently returns one record
+made of all of them.
 
 </details>
 
@@ -372,8 +403,13 @@ resolved path. Retracting it is in `docs/plasma-bugs.md`.
 ## Caveats
 
 **Tested on one machine.** Plasma 6.6.6, Kubuntu 26.04, Wayland, a single
-3440×1440 screen. Multi-monitor is unhandled — everything targets
-`screenGeometry(0)` and the containment from `desktops()[0]`.
+3440×1440 screen.
+
+**Multi-monitor works, and screen indexes are Plasma's.** `screen = 1` on a
+group puts it on Plasma's second screen, which is not necessarily the one on the
+right — run `paddocks screens` and use the index it prints. Each screen is laid
+out against its own size and written under its own containment, so a group never
+has to know where its monitor sits in the combined desktop.
 
 **This leans on private API.** `ItemGeometries` and the containment layout
 internals are not a stable interface. A Plasma point release can change the

@@ -78,3 +78,11 @@ path = "~/Downloads"
 # name = "Screenshots"
 # path = "~/Pictures/Screenshots"
 # cells = 12
+
+# `screen` puts a group on another monitor. The index is Plasma's numbering,
+# which is not the physical order -- `paddocks screens` prints it. Left out, a
+# group goes on screen 0.
+# [[group]]
+# name = "Reference"
+# screen = 1
+# path = "~/Documents/Reference"

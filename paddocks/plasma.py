@@ -23,6 +23,7 @@ import os
 import shutil
 import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
@@ -68,11 +69,20 @@ def _kwriteconfig() -> str:
     raise PlasmaError("no kwriteconfig binary found")
 
 
+RECORD = "\x1e"  # ASCII record separator
+
+
 def run_script(js: str, check: bool = True) -> str:
     """Evaluate JS in plasmashell. Returns whatever the script print()ed.
 
     `check=False` is for scripts that catch their own errors and print partial
     results alongside them; the caller then decides what to raise.
+
+    **`print()` does not append a newline.** Two calls come back glued into one
+    string -- "count=2" followed by "0: id=1" arrives as "count=20: id=1" --
+    so anything printing more than one value has to emit its own separator and
+    must not use `splitlines()`. `RECORD` is that separator; `records()` splits
+    on it.
     """
     proc = subprocess.run(
         [_qdbus(), "org.kde.plasmashell", "/PlasmaShell",
@@ -86,6 +96,11 @@ def run_script(js: str, check: bool = True) -> str:
             if js_error in proc.stdout:
                 raise PlasmaError(f"script error: {proc.stdout.strip()}")
     return proc.stdout
+
+
+def records(out: str) -> list[str]:
+    """Split script output printed one record at a time."""
+    return [part.strip() for part in out.split(RECORD) if part.strip()]
 
 
 def is_running() -> bool:
@@ -190,21 +205,63 @@ def start() -> None:
     raise PlasmaError("plasmashell did not come back up")
 
 
-def screen_geometry(index: int = 0) -> tuple[int, int]:
-    out = run_script(
-        f'var g = screenGeometry({index});'
-        f' print(g.width + "x" + g.height);'
-    ).strip()
-    w, _, h = out.partition("x")
-    return int(w), int(h)
+@dataclass(frozen=True)
+class Screen:
+    """A screen Plasma is laying out for, and the containment that owns it."""
+
+    index: int
+    width: int
+    height: int
+    containment: int
+
+    @property
+    def resolution(self) -> str:
+        return f"{self.width}x{self.height}"
 
 
-def desktop_containment() -> int:
-    """Id of the first desktop containment (the one holding the wallpaper)."""
-    out = run_script('print(desktops()[0].id);').strip()
-    if not out:
-        raise PlasmaError("no desktop containment found")
-    return int(out)
+def screens() -> list[Screen]:
+    """Every screen, paired with the desktop containment sitting on it.
+
+    The pairing is the point, not the count. ``desktops()`` is not ordered by
+    screen and holds one containment per screen *per activity*, so indexing it
+    is exactly how widgets end up on the wrong monitor; only the containments
+    on the current activity report a real ``screen``. And ``ItemGeometries`` is
+    keyed by resolution, so each screen's positions have to be written under
+    its own containment with its own key -- a key naming another screen's size
+    is not read at all, which fails silently and reads as though the write did
+    nothing.
+    """
+    out = run_script("""
+        var ds = desktops();
+        for (var i = 0; i < screenCount; i++) {
+            var g = screenGeometry(i);
+            var id = -1;
+            for (var j = 0; j < ds.length; j++) {
+                if (ds[j].screen === i) { id = ds[j].id; break; }
+            }
+            print(i + " " + g.width + " " + g.height + " " + id + "\x1e");
+        }
+    """)
+
+    found: list[Screen] = []
+    for record in records(out):
+        parts = record.split()
+        if len(parts) != 4 or not all(p.lstrip("-").isdigit() for p in parts):
+            raise PlasmaError(f"could not read the screen list: {record!r}")
+        index, width, height, containment = (int(p) for p in parts)
+        found.append(Screen(index, width, height, containment))
+
+    if not found:
+        raise PlasmaError(f"plasmashell reported no screens: {out!r}")
+
+    orphans = [s.index for s in found if s.containment < 0]
+    if orphans:
+        raise PlasmaError(
+            f"screen {orphans} has no desktop containment on the current "
+            "activity, so nothing can be placed on it. Switching activities "
+            "and back usually makes Plasma create one."
+        )
+    return found
 
 
 def add_quicklaunch_widgets(entries: list[tuple[str, list[str], int]]) -> list[int]:
@@ -228,7 +285,8 @@ def add_quicklaunch_widgets(entries: list[tuple[str, list[str], int]]) -> list[i
     )
 
 
-def add_group_widgets(specs: list[dict]) -> list[int]:
+def add_group_widgets(specs: list[dict],
+                      containment: int | None = None) -> list[int]:
     """Create the widgets for a whole config, in order, mixing both kinds.
 
     Each spec is ``{"kind": "apps", "title", "urls", "rows"}`` or
@@ -243,12 +301,24 @@ def add_group_widgets(specs: list[dict]) -> list[int]:
     changes to the directory as they happen.
     """
     payload = json.dumps(specs)
+    wanted = "null" if containment is None else str(containment)
     out = run_script(f"""
         var specs = {payload};
-        var d = desktops()[0];
+        var wanted = {wanted};
+        var ds = desktops();
+        var d = null;
+        if (wanted === null) {{
+            d = ds[0];
+        }} else {{
+            for (var k = 0; k < ds.length; k++) {{
+                if (ds[k].id === wanted) {{ d = ds[k]; break; }}
+            }}
+        }}
         var out = [];
         var err = "";
+        if (!d) err = "no desktop containment with id " + wanted;
         try {{
+            if (!d) throw new Error(err);
             for (var i = 0; i < specs.length; i++) {{
                 var s = specs[i];
                 var w;
@@ -275,17 +345,17 @@ def add_group_widgets(specs: list[dict]) -> list[int]:
         }} catch (e) {{
             err = String(e);
         }}
-        print("IDS " + out.join(","));
-        if (err) print("ERR " + err);
+        print("IDS " + out.join(",") + "\x1e");
+        if (err) print("ERR " + err + "\x1e");
     """, check=False)
 
     ids: list[int] = []
     error = ""
-    for line in out.splitlines():
-        if line.startswith("IDS "):
-            ids = [int(i) for i in line[4:].split(",") if i.strip()]
-        elif line.startswith("ERR "):
-            error = line[4:].strip()
+    for record in records(out):
+        if record.startswith("IDS "):
+            ids = [int(i) for i in record[4:].split(",") if i.strip()]
+        elif record.startswith("ERR "):
+            error = record[4:].strip()
 
     if error:
         raise WidgetCreationError(f"creating widgets failed: {error}", ids)
@@ -296,15 +366,25 @@ def add_group_widgets(specs: list[dict]) -> list[int]:
 
 
 def remove_widgets(applet_ids: list[int]) -> int:
+    """Remove by id, across every containment.
+
+    Sweeping rather than looking in ``desktops()[0]`` is what makes ``remove``
+    work on a second screen: a widget built on another monitor is not in the
+    first containment's ``widgetIds``, so it would be reported as removed
+    without being removed.
+    """
     payload = json.dumps(applet_ids)
     out = run_script(f"""
         var targets = {payload};
-        var d = desktops()[0];
+        var ds = desktops();
         var removed = 0;
-        var ids = d.widgetIds.slice();
-        for (var i = 0; i < ids.length; i++) {{
-            var w = d.widgetById(ids[i]);
-            if (targets.indexOf(w.id) !== -1) {{ w.remove(); removed++; }}
+        for (var k = 0; k < ds.length; k++) {{
+            var d = ds[k];
+            var ids = d.widgetIds.slice();
+            for (var i = 0; i < ids.length; i++) {{
+                var w = d.widgetById(ids[i]);
+                if (w && targets.indexOf(w.id) !== -1) {{ w.remove(); removed++; }}
+            }}
         }}
         print(removed);
     """)
