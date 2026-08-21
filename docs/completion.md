@@ -62,16 +62,22 @@ hit only documented limits.
       `desktops()[0]`, so a widget on a second monitor was reported removed
       without being removed. Verified: containment 247 had no applets left after
       the restore.
-* [ ] **The translucency fix needs a real-desktop run.** `apply` now patches
-      `translucent/widgets/background.svgz` as well; that path is covered by
-      unit tests against a fake theme tree but has not been run against the
-      live desktop since the change.
-* [ ] **A tagged 1.0.0**, installable with `pipx install`, with a CHANGELOG.
-      Currently `0.1.0` in `paddocks/__init__.py`.
-* [ ] **README matches upstream reality** — the Track A doc edits.
-* [ ] **One clean install on a machine that is not this one**, or the
-      "tested on one machine" caveat is promoted from a footnote to the top of
-      the README. Two screens on one machine is not two machines.
+* [x] **The translucency fix ran against the real desktop.** *Done 2026-08-21* —
+      `paddocks translucency 0.4` now writes `translucent/widgets/background.svgz`
+      for both kubuntu-light and kubuntu-dark, nine patched frame elements and
+      nine `blurred-mask-*` elements intact in each, confirmed on screen.
+* [x] **A tagged 1.0.0**, installable with `pipx install`, with a CHANGELOG.
+      *Done 2026-08-21.*
+* [x] **README matches upstream reality** — *Done 2026-08-21* with the Track A
+      edits: findings 1 and 3 record the WONTFIX reasoning, finding 4's cache
+      claim is retracted, and finding 5 documents the selector it originally got
+      backwards.
+* [x] **The "tested on one machine" caveat is at the top of the README**, with
+      what that means in practice — private config key, shell restart, backup
+      taken first, `--dry-run` available. *Done 2026-08-21.* The other half of
+      this — a clean install on a machine that is not this one — is still worth
+      doing and is not something the author can tick off alone. Two screens on
+      one machine is not two machines.
 
 Explicitly *not* in 1.0: mixed launcher/folder groups, theming beyond the
 existing `translucency` command, X11 support, anything that needs Plasma to

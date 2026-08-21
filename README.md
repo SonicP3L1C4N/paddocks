@@ -21,6 +21,13 @@ more usefully — the five things that otherwise cost an afternoon each.
 
 ![Seven groups laid out across the top of a 3440x1440 desktop](docs/screenshot.png)
 
+**Tested on one machine** — Plasma 6.6.6, Kubuntu 26.04, Wayland. That is the
+main thing to know before installing: it drives Plasma through its scripting
+API, writes a private key in `plasma-org.kde.plasma.desktop-appletsrc`, and
+restarts plasmashell to do it. `apply` copies that file aside before it touches
+anything and `--dry-run` prints the layout without changing a thing, so a first
+run is watchable rather than a leap. The [caveats](#caveats) are the full list.
+
 ## Install
 
 ```
