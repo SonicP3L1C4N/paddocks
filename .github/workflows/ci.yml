@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: 2026 Gary Bissett <gary.bissett@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    # The test suite never touches a real plasmashell, a real config or a real
+    # state file -- FakePlasma stands in for the module wholesale -- so it runs
+    # anywhere, with no desktop session and no Plasma installed.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        # The editor's Qt dependency is deliberately optional; the GUI tests
+        # skip themselves when it is missing, so CI installs the base package
+        # and one extra job below covers the editor.
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Run the tests
+        run: python -m unittest discover -v
+
+  editor:
+    # PySide6 rather than PyQt6: PySide6 is LGPL and this project is MIT.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install with the editor
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[gui]"
+      - name: Run the tests headless
+        # No display on a runner, and the editor tests construct widgets.
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m unittest discover -v
+
+  reuse:
+    # Licensing is a KDE intake gate, so it is checked rather than remembered.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5
