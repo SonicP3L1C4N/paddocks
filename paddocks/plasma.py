@@ -445,8 +445,13 @@ def format_geometries(boxes: list[tuple[int, int, int, int, int]]) -> str:
 
 
 def clear_theme_caches() -> list[Path]:
-    """Theme pixmap caches are keyed by theme *name*. Patching a theme in place
-    without clearing these serves the old artwork forever."""
+    """Drop the theme pixmap caches.
+
+    Not the workaround it looks like: KSvg tracks a per-file ``LastModified``
+    and does pick up an edited asset on its own. These mtimes have one-second
+    resolution though, and callers here patch a theme file and restart the
+    shell immediately, so the caches go rather than be reasoned about.
+    """
     removed = []
     for path in list(CACHE_DIR.glob("plasma_theme_*.kcache")) + [CACHE_DIR / "ksvg-elements"]:
         if path.exists():

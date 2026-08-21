@@ -24,7 +24,7 @@ and nothing in this repo claims something Bugzilla contradicts.
 |---|---|
 | **524247** (NEEDSINFO, wishlist) | Nate's "what's the use case?" is answered. This is the one with a clock on it — NEEDSINFO reports get closed for inactivity. |
 | **524246** (CONFIRMED, MR invited) | ~~The selector experiment has been run.~~ **Run 2026-08-21: the report is wrong**, the assets are live. Done when the retraction in `plasma-bugs.md` is posted and the bug is resolved INVALID. No MR. |
-| **524245** (UNCONFIRMED, ignored) | One follow-up comment with a cleaner reproduction, then left alone. Silence after that is an answer. |
+| **524245** (UNCONFIRMED, ignored) | ~~One follow-up comment with a cleaner reproduction.~~ **Tested 2026-08-21 and it does not reproduce** — three variants, including a backdated mtime. Done when the retraction is posted and it is closed. Two of the seven reports retracted by their own reporter is not a good look, but posting neither would be worse. |
 | **524242** (FIXED) | README finding 1 says it is fixed in KIO master and absent from 6.24 LTS, and the workaround stays for LTS users. |
 | **524243, 524244** (WONTFIX) | README findings 1 and 3 are rewritten to describe deliberate trade-offs rather than defects, quoting the reasoning. No re-litigation. |
 | **362511** (CONFIRMED, 2016) | Nothing. Comment #5 stands. |

@@ -336,14 +336,26 @@ worth arguing twice.
 </details>
 
 <details>
-<summary><b>4. Theme caches are keyed by theme name</b></summary>
-
-Following from the above: keeping the name means the pixmap cache keeps serving
-the old artwork. Clear it while plasmashell is down.
+<summary><b>4. Theme caches, and what clearing them is actually for</b></summary>
 
 ```
 rm -f ~/.cache/plasma_theme_*.kcache ~/.cache/ksvg-elements
 ```
+
+This used to say the pixmap cache serves the old artwork forever when a theme is
+edited under its own name, so clearing it is required. **That was wrong**, and it
+was filed upstream as [bug 524245](https://bugs.kde.org/show_bug.cgi?id=524245)
+before being tested properly. KSvg records a per-file `LastModified` in
+`ksvg-elements` and rejects a cached entry whose file mtime differs — a changed
+asset is picked up whether the shell was running at the time or not, and even if
+the new file's timestamp is *older* than the cache's.
+
+Two things are worth keeping from it. Testing this needs plasmashell **stopped**
+while the file changes, or the running shell notices the edit itself and refreshes
+the caches, and the restart afterwards proves nothing. And the mtimes have
+one-second resolution, so a tool that writes a theme file and restarts the shell
+in the same breath — which is what `paddocks translucency` does — clears the
+caches anyway, as insurance rather than as a workaround.
 
 </details>
 

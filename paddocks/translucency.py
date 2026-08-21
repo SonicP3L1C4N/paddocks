@@ -17,8 +17,12 @@ Three traps live here:
    new custom theme appears to do nothing. We sidestep it by shadowing the
    *active* theme under its own id in ~/.local/share, which takes priority
    over /usr/share.
-2. Theme pixmap caches are keyed by theme name. Since we keep the name, the
-   cache must be cleared or Plasma serves the old artwork forever.
+2. Theme pixmap caches are keyed by theme name, and we deliberately keep the
+   name. KSvg does notice an edit -- it records a per-file ``LastModified`` in
+   ``ksvg-elements`` and rejects entries whose file mtime differs -- so clearing
+   is not the workaround it was once written up as (bug 524245, retracted). It
+   stays because those mtimes have one-second resolution and ``apply`` writes
+   the file and restarts the shell in the same breath.
 3. A theme has *two* applet backgrounds, and overriding one hides the other.
    ``ThemePrivate::updateKSvgSelectors()`` sets the KSvg selector
    ``translucent`` whenever compositing and blur are both active, and KSvg

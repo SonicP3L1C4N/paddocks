@@ -36,7 +36,7 @@ including the code that ships in the `plasma-workspace` package, is filed under
 | 2 | [524243](https://bugs.kde.org/show_bug.cgi?id=524243) `Folder View widget` | **RESOLVED WONTFIX** | Intentional both ways: `file://` withholds `Name=` on purpose, and `desktop:/` exists partly *to* show it. Accepted trade-off, not an oversight. |
 | 3 | [362511](https://bugs.kde.org/show_bug.cgi?id=362511) `Scripting` | CONFIRMED, no reply | Comment #5 stands. Nothing to do but watch. |
 | 4 | [524244](https://bugs.kde.org/show_bug.cgi?id=524244) `general` | **RESOLVED WONTFIX** | "Works for me": the tool did apply the theme and exiting 0 is correct; the later reset is the automatic switcher doing its job. The report's actual complaint — that `plasmarc` is left disagreeing with the screen with no warning — was not addressed. |
-| 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | UNCONFIRMED, **no reply** | The only one nobody has looked at. |
+| 5 | [524245](https://bugs.kde.org/show_bug.cgi?id=524245) frameworks-ksvg | UNCONFIRMED, no reply | Nobody looked at it, and on 2026-08-21 **it turned out to be wrong too** — see below. Needs retracting. |
 | 6 | [524246](https://bugs.kde.org/show_bug.cgi?id=524246) `Theme - Breeze` | **CONFIRMED** — "Feel free to submit a merge request removing it." | An open invitation to contribute. **But see the correction below: the premise now looks wrong.** |
 | 7 | [524247](https://bugs.kde.org/show_bug.cgi?id=524247) `Containment` | **NEEDSINFO** since 2026-08-14 | "Why? What's the use case for this?" — unanswered for a week. Needs a reply. |
 
@@ -207,15 +207,74 @@ paragraph above -- silently drops the blurred-mask-* elements unless they think
 to copy the translucent variant too.
 ```
 
-### For 524245 — the one nobody replied to
+### For 524245 — retraction
 
-**Held, deliberately.** A follow-up that adds nothing new to an ignored report is
-just a bump. The report currently infers the stale cache from the fact that
-clearing it is *necessary*; what would make it undeniable is showing that a
-changed asset is *not* picked up without clearing — change a theme asset,
-restart plasmashell **without** clearing the caches, and show the old artwork
-still rendering. That experiment has not been run; every theme change made here
-so far cleared the caches in the same breath. Run it first, then comment.
+**Tested 2026-08-21, and it does not reproduce.** The report claims the theme
+pixmap cache is keyed by name only, with "no mtime or content check", so an
+in-place edit is served stale indefinitely. Three variants against the active
+theme, patching `widgets/background.svgz` in place with an unmistakable colour
+and never clearing a cache:
+
+| What was changed | Result |
+|---|---|
+| artwork changed while plasmashell was running | picked up within seconds, no restart needed |
+| artwork changed while plasmashell was stopped, then started | picked up |
+| same, with the file's mtime backdated well below the cache file's | still picked up |
+
+The first run of this was botched and worth recording: the file was patched
+while the shell was still up, so the shell noticed it live and refreshed the
+caches four seconds later — the subsequent restart then loaded caches that were
+already current, which proves nothing about staleness. The change has to be made
+while plasmashell is down for the test to mean anything.
+
+The source agrees. `SvgRectsCache` records a per-file `LastModified` in
+`~/.cache/ksvg-elements` and rejects a cached entry whose file mtime differs
+(`svg.cpp`, `loadImageFromCache` / `lastModifiedTimeFromCache`). The comparison
+is `!=`, which is why the backdated case is caught too.
+
+So the original observation — patching a theme asset and seeing nothing change —
+was real, and the cause was not the cache. It was the same mistake as 524246:
+patching a file that was not on the resolved path.
+
+**This also means the README was wrong about clearing the cache being required**,
+and it is fixed there. Paddocks still clears it, on one narrow ground: these
+mtimes have one-second resolution and `apply` writes a theme file and restarts
+the shell immediately, so two edits inside the same second are conceivable. That
+is insurance, not a workaround.
+
+```text
+Retracting this: I cannot reproduce it on 6.6.6, and I now think the report was
+wrong when I filed it.
+
+Three variants, all against the active theme (kubuntu-light, shadowed into
+~/.local/share under its own name), patching widgets/background.svgz in place
+with an unmistakable colour, never clearing any cache:
+
+1. Changed while plasmashell was running -- picked up within seconds, without a
+   restart.
+2. Changed while plasmashell was stopped, then started -- picked up.
+3. Changed while stopped, with the file's mtime backdated to well before the
+   cache file's, then started -- still picked up.
+
+The caches do track this. SvgRectsCache records a per-file LastModified in
+~/.cache/ksvg-elements and rejects a cached entry whose file mtime differs
+(svg.cpp, loadImageFromCache and lastModifiedTimeFromCache). The comparison is
+!=, so a timestamp moving backwards is caught as well as one moving forwards.
+
+For anyone repeating this: the change has to be made while plasmashell is
+stopped. My first attempt patched the file with the shell running, which noticed
+it live and refreshed the caches on its own, so the restart afterwards proved
+nothing.
+
+What I originally saw -- patching a theme asset and nothing changing -- was real,
+but the cause was not the cache. I was patching a file that was not on the
+resolved path: KSvg resolves <theme>/<selector>/<image> ahead of <theme>/<image>
+when the "translucent" selector is set, and my active theme shadowed only the
+plain asset. That is also what was wrong with bug 524246, which I have retracted
+as well.
+
+Sorry for the noise. Please close.
+```
 
 ### New report — `evaluateScript` runs `print()` output together
 
