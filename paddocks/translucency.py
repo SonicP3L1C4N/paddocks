@@ -34,8 +34,8 @@ Three traps live here:
    therefore drops the blur silently, so both get patched.
 
    That last one was reported upstream as bug 524246 -- as the *opposite*
-   claim, that the translucent asset was dead. It is not; see
-   docs/plasma-bugs.md.
+   claim, that the translucent asset was dead. It is not, and the report was
+   retracted: https://bugs.kde.org/show_bug.cgi?id=524246
 """
 
 from __future__ import annotations

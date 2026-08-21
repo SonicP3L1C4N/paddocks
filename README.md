@@ -249,8 +249,8 @@ None of this is documented, and most of it fails without an error message.
 
 All five went to KDE as bug reports on 2026-08-14 (524242–524247, plus a comment
 on 362511) and all but one had a reply within a day. **The outcomes are recorded
-inline below, including the one where the report turned out to be wrong.**
-`docs/plasma-bugs.md` is the full record.
+inline below, including the two where the report turned out to be wrong.**
+[`docs/plasma-bugs.md`](docs/plasma-bugs.md) has the table and the links.
 
 <details>
 <summary><b>1. Folder View looks like the right widget for launchers, and is a dead end</b></summary>
@@ -447,7 +447,9 @@ invitation to submit a merge request deleting the files. The invitation is what
 made it worth checking properly: dropping an obviously-wrong magenta background
 into the *active* theme's `translucent/` directory turned every widget frame
 magenta immediately. The original test had patched a file that was never on the
-resolved path. Retracting it is in `docs/plasma-bugs.md`.
+resolved path. It is retracted and closed; so is
+[524245](https://bugs.kde.org/show_bug.cgi?id=524245), which was the same
+mistake in a different place.
 
 </details>
 

@@ -51,7 +51,7 @@ is where it was developed in the open between 2026-08-11 and 2026-08-21.
 - The README's five findings are the other half of the project: undocumented
   Plasma behaviour that fails silently, each one reported upstream and each
   outcome recorded, including the two reports that testing showed were wrong.
-  `docs/plasma-bugs.md` is the full record.
+  `docs/plasma-bugs.md` has the table and the links.
 
 ### Packaging
 
