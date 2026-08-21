@@ -320,43 +320,63 @@ Severity `normal` rather than `minor` on the same reasoning as report 5: this is
 wrong output rather than a cosmetic nit, and it corrupts the caller's data
 quietly instead of failing.
 
+**Written to Bugzilla's own template** — DESCRIPTION, numbered steps,
+SOFTWARE/OS VERSIONS and so on. The first attempt at filing this used the older
+SUMMARY-first shape, which Bugzilla appended *underneath* its empty template,
+leaving duplicated headings. Select the whole description field and replace it
+with the block below rather than pasting into it.
+
 ```text
-SUMMARY
+DESCRIPTION
 
 The string returned by org.kde.PlasmaShell.evaluateScript joins the output of
 successive print() calls with no separator. A script that prints more than one
-value comes back as a single run-together string, and there is nothing in it to
-say where one value ends and the next begins.
+value comes back as a single run-together string, with nothing in it to say
+where one value ends and the next begins.
 
 STEPS TO REPRODUCE
+1. Run a script that prints twice:
 
-    qdbus6 org.kde.plasmashell /PlasmaShell \
-        org.kde.PlasmaShell.evaluateScript 'print("one"); print("two");'
+       qdbus6 org.kde.plasmashell /PlasmaShell \
+           org.kde.PlasmaShell.evaluateScript 'print("one"); print("two");'
+
+2. For comparison, run one that prints a newline itself:
+
+       qdbus6 org.kde.plasmashell /PlasmaShell \
+           org.kde.PlasmaShell.evaluateScript 'print("one\ntwo");'
+
+3. Compare the two results.
 
 OBSERVED RESULT
 
+Step 1 returns:
+
     onetwo
+
+Step 2 returns:
+
+    one
+    two
 
 EXPECTED RESULT
 
-    one
-    two
+Step 1 to return the same thing as step 2 -- print() terminating a record, which
+is what the name implies and what the equivalent in other scripting consoles
+does.
 
-print() terminating a record is what the name implies, and what the equivalent
-in every other scripting console does.
+SOFTWARE/OS VERSIONS
+Operating System: Kubuntu 26.04 LTS
+KDE Plasma Version: 6.6.6
+KDE Frameworks Version: 6.24.0
+Qt Version: 6.10.2
+Graphics Platform: Wayland
 
 ADDITIONAL INFORMATION
 
-The transport is not the problem -- a newline inside a single print() survives
-the round trip:
+Step 2 is there to rule out the transport: a newline inside a single print()
+survives the round trip intact, so it is print() that does not append one.
 
-    ... evaluateScript 'print("one\ntwo");'
-    one
-    two
-
-so it is print() that does not append one.
-
-Why it is worth fixing rather than working around: the failure produces
+Why this seems worth fixing rather than working around: the failure produces
 plausible output rather than obviously broken output. Enumerating screens --
 
     for (var i = 0; i < screenCount; i++) {
@@ -368,20 +388,14 @@ returns
 
     0 3440x14401 2560x1440
 
-on a two-screen desktop. The "1" that opens the second record is glued to the
-first record's height, so the first screen reads as 14401 pixels tall and the
-second record is missing its index. Every field still looks like a number.
-Splitting the result on newlines -- the obvious thing to do, and correct for
-single-record scripts -- yields one record containing all of them.
+on a two-screen desktop. The "1" opening the second record is glued to the first
+record's height, so the first screen reads as 14401 pixels tall and the second
+record has lost its index. Every field still looks like a number. Splitting the
+result on newlines -- the obvious thing to do, and correct for a script that
+prints once -- yields a single record containing all of them.
 
 The workaround is for the script to emit its own separator, which is fine once
 you know. Until you know, it looks like the Plasma API is returning bad values.
-
-Operating System: Ubuntu 26.04 LTS (Kubuntu)
-KDE Plasma Version: 6.6.6
-KDE Frameworks Version: 6.24.0
-Qt Version: 6.10.2
-Graphics Platform: Wayland
 ```
 
 ---
