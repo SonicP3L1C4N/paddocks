@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
-## Unreleased
+## 1.0.1 — 2026-08-22
 
 - The editor says which version it is: `Paddocks <version>` sits in the status
   bar, and a hamburger menu beside the action buttons opens **About Paddocks**.

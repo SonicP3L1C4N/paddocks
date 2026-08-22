@@ -4,7 +4,7 @@
 
 """Paddocks desktop groups for KDE Plasma 6."""
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 # Repeated from pyproject.toml's [project.urls] so that the running program can
 # show them without reading its own metadata, which a checkout has none of.
