@@ -130,6 +130,17 @@ config and rebuilds the desktop. An id that no longer resolves is shown in red
 and kept rather than quietly dropped — the application may only be temporarily
 uninstalled.
 
+The status bar carries the running version, and **☰** beside the buttons has the
+rest: the project page, the issue tracker, and **About Paddocks**.
+
+![The editor's menu open in the bottom-right corner, offering About Paddocks, Project page and Report a bug, with the version in the status bar beside it](docs/menu.png)
+
+About holds a **Details** block — Paddocks, Plasma, the session, Qt, PySide6 and
+Python, plus the config path — behind a button that copies the lot. A Plasma bug
+report is unanswerable without those versions, and nobody has them by heart:
+
+![The About dialog: version, licence and links above a Details block listing the Paddocks, Plasma, session, Qt/PySide6 and Python versions with the config path](docs/about.png)
+
 Saving rewrites the file canonically: non-default settings, then the groups in
 order. **Hand-written comments do not survive that.** Python has no
 standard-library TOML writer, and the round-trip libraries that preserve
@@ -217,6 +228,7 @@ nearest ids instead of just failing:
 | `paddocks remove` | take the groups away again |
 | `paddocks translucency 0.4` | widget background opacity, lower is more transparent; `reset` to undo |
 | `paddocks install-desktop` | menu entry and icon — `--remove`, `--variant dark\|light` |
+| `paddocks --version` | which version this is |
 
 `--strict` turns an unresolved launcher into an error that changes nothing —
 for a settled config, or when driving `apply` from a script. Put

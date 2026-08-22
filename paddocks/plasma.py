@@ -128,6 +128,25 @@ def is_running() -> bool:
     return proc.stdout.strip() == "true"
 
 
+def version() -> str:
+    """The Plasma version, or "" when there is no plasmashell to ask.
+
+    Best effort by design: this is only ever shown, never acted on, and the
+    editor has to open on a machine where the shell is missing or restarting.
+    """
+    plasmashell = shutil.which("plasmashell")
+    if not plasmashell:
+        return ""
+    try:
+        proc = subprocess.run([plasmashell, "--version"], capture_output=True,
+                              text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    # "plasmashell 6.4.5" -- the number is the last field.
+    parts = proc.stdout.split()
+    return parts[-1] if proc.returncode == 0 and parts else ""
+
+
 def stop() -> None:
     """Quit plasmashell, wherever it happens to live.
 

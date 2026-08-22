@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import desktop, groups, plasma, translucency
+from . import __version__, desktop, groups, plasma, translucency
 
 DEFAULT_CONFIG = Path.home() / ".config" / "paddocks.toml"
 
@@ -24,6 +24,8 @@ DEFAULT_CONFIG = Path.home() / ".config" / "paddocks.toml"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="paddocks", description="Desktop groups for KDE Plasma 6.")
+    parser.add_argument("-V", "--version", action="version",
+                        version=f"paddocks {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_apply = sub.add_parser("apply", help="create/refresh groups from a config")

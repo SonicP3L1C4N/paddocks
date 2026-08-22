@@ -21,16 +21,19 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt, QThread, Signal
-from PySide6.QtGui import QBrush, QColor, QGuiApplication, QIcon, QPalette
+from PySide6 import __version__ as PYSIDE_VERSION
+from PySide6.QtCore import QSize, Qt, QThread, QUrl, Signal, qVersion
+from PySide6.QtGui import (
+    QAction, QBrush, QColor, QDesktopServices, QGuiApplication, QIcon, QPalette,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
-    QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton,
-    QSpinBox, QSplitter, QVBoxLayout, QWidget,
+    QListWidgetItem, QMainWindow, QMenu, QMessageBox, QPlainTextEdit,
+    QPushButton, QSpinBox, QSplitter, QToolButton, QVBoxLayout, QWidget,
 )
 
-from . import apps, desktop, groups, plasma
+from . import HOMEPAGE, ISSUES, __version__, apps, desktop, groups, plasma
 from .layout import ALIGNMENTS, ARRANGEMENTS, Metrics
 
 ROLE = Qt.ItemDataRole.UserRole
@@ -40,6 +43,7 @@ MISSING_COLOUR = QColor(200, 60, 60)
 def run(config_path: Path) -> int:
     app = QApplication(sys.argv[:1])
     app.setApplicationName("Paddocks")
+    app.setApplicationVersion(__version__)
     # Only claimed once the menu entry exists: without a matching .desktop file
     # the portal rejects the id and Qt logs a warning on every start.
     if desktop.installed_entry() is not None:
@@ -129,6 +133,95 @@ class OutputDialog(QDialog):
         box.addWidget(buttons)
 
 
+class AboutDialog(QDialog):
+    """Which version this is, who wrote it, and what to quote in a bug report.
+
+    The environment block is the reason this is a dialog rather than a message
+    box: a Plasma bug report is unanswerable without the Qt and Plasma versions
+    it happened on, and nobody types those out from memory.
+    """
+
+    def __init__(self, parent, config_path: Path):
+        super().__init__(parent)
+        self.setWindowTitle("About Paddocks")
+        self.details = environment_report(config_path)
+
+        icon = QLabel()
+        icon.setPixmap(paddocks_icon().pixmap(QSize(64, 64)))
+        icon.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        blurb = QLabel(
+            f"<h2 style='margin:0'>Paddocks {__version__}</h2>"
+            "<p style='margin:6px 0 0 0'>Desktop groups for KDE Plasma 6 — "
+            "titled panels of launchers, built out of stock Plasma widgets.</p>"
+            "<p style='margin:12px 0 0 0'>© 2026 Gary Bissett · MIT licence</p>"
+            f"<p style='margin:2px 0 0 0'><a href='{HOMEPAGE}'>Project page</a>"
+            f" · <a href='{ISSUES}'>Report a bug</a></p>"
+        )
+        blurb.setOpenExternalLinks(True)
+        blurb.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextBrowserInteraction)
+        blurb.setWordWrap(True)
+
+        heading = QHBoxLayout()
+        heading.addWidget(icon)
+        heading.addSpacing(12)
+        heading.addWidget(blurb, 1)
+
+        view = QPlainTextEdit(self.details)
+        view.setReadOnly(True)
+        view.setStyleSheet("font-family: monospace;")
+        view.setFixedHeight(140)
+
+        self.copy_button = QPushButton(QIcon.fromTheme("edit-copy"),
+                                       "Copy details")
+        self.copy_button.setToolTip(
+            "Put the block above on the clipboard, for a bug report")
+        self.copy_button.clicked.connect(self._copy)
+        qt = QPushButton("About Qt")
+        qt.clicked.connect(lambda: QMessageBox.aboutQt(self, "About Qt"))
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.addButton(self.copy_button,
+                          QDialogButtonBox.ButtonRole.ActionRole)
+        buttons.addButton(qt, QDialogButtonBox.ButtonRole.ActionRole)
+        buttons.rejected.connect(self.reject)
+
+        box = QVBoxLayout(self)
+        box.addLayout(heading)
+        box.addSpacing(8)
+        box.addWidget(QLabel("Details"))
+        box.addWidget(view)
+        box.addWidget(buttons)
+        self.setMinimumWidth(520)
+
+    def _copy(self) -> None:
+        QApplication.clipboard().setText(self.details)
+        # The dialog has no status bar to say it worked, so the button says it.
+        self.copy_button.setText("Copied")
+
+
+def environment_report(config_path: Path) -> str:
+    """The versions a bug report needs, gathered without failing on any of them.
+
+    Runs on a machine where plasmashell may not be answering, so the Plasma
+    version is best effort like everything else the editor asks the shell.
+    """
+    session = " ".join(part for part in (
+        os.environ.get("XDG_CURRENT_DESKTOP"),
+        os.environ.get("XDG_SESSION_TYPE"),
+    ) if part) or "unknown"
+    rows = [
+        ("Paddocks", __version__),
+        ("Plasma", plasma.version() or "not detected"),
+        ("Session", session),
+        ("Qt", f"{qVersion()} (PySide6 {PYSIDE_VERSION})"),
+        ("Python", sys.version.split()[0]),
+        ("Config", str(config_path)),
+        ("Installed at", str(Path(__file__).resolve().parent.parent)),
+    ]
+    return "\n".join(f"{name:<13}{value}" for name, value in rows)
+
+
 class Editor(QMainWindow):
     def __init__(self, config_path: Path):
         super().__init__()
@@ -166,6 +259,11 @@ class Editor(QMainWindow):
         central.setLayout(root)
         self.setCentralWidget(central)
         self.statusBar().showMessage("Ready")
+        # Permanent, so which version is running is answerable at a glance
+        # rather than only from the About dialog.
+        version = QLabel(f"Paddocks {__version__}")
+        version.setToolTip("Version — see ☰ → About Paddocks for the rest")
+        self.statusBar().addPermanentWidget(version)
 
     def _groups_panel(self) -> QWidget:
         self.group_list = QListWidget()
@@ -302,7 +400,41 @@ class Editor(QMainWindow):
         bar.addStretch(1)
         for button in (self.preview_button, self.save_button, self.apply_button):
             bar.addWidget(button)
+        bar.addWidget(self._hamburger())
         return bar
+
+    def _hamburger(self) -> QToolButton:
+        """A hamburger rather than a menu bar.
+
+        One window with its actions already on a bottom bar has nothing to put
+        in a File menu, and Plasma's own applications have moved the same way.
+        """
+        about = QAction(QIcon.fromTheme("help-about"), "&About Paddocks", self)
+        about.triggered.connect(self._about)
+        project = QAction(QIcon.fromTheme("internet-web-browser"),
+                          "&Project page…", self)
+        project.triggered.connect(lambda: QDesktopServices.openUrl(QUrl(HOMEPAGE)))
+        report = QAction(QIcon.fromTheme("tools-report-bug"), "&Report a bug…",
+                         self)
+        report.triggered.connect(lambda: QDesktopServices.openUrl(QUrl(ISSUES)))
+
+        self.menu = QMenu(self)
+        self.menu.addAction(about)
+        self.menu.addSeparator()
+        self.menu.addAction(project)
+        self.menu.addAction(report)
+
+        button = QToolButton()
+        button.setIcon(QIcon.fromTheme("application-menu"))
+        if button.icon().isNull():  # icon theme without the Breeze name
+            button.setText("☰")
+        button.setToolTip("Menu")
+        button.setMenu(self.menu)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        return button
+
+    def _about(self) -> None:
+        AboutDialog(self, self.config_path).exec()
 
     # ----------------------------------------------------------- load/save
 

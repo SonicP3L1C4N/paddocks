@@ -6,6 +6,15 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+## Unreleased
+
+- The editor says which version it is: `Paddocks <version>` sits in the status
+  bar, and a hamburger menu beside the action buttons opens **About Paddocks**.
+  The dialog carries a **Details** block — Paddocks, Plasma, session, Qt/PySide6
+  and Python versions, plus the config path — with a button that copies it, so a
+  bug report can quote the versions it happened on rather than guess at them.
+- `paddocks --version` (`-V`) on the command line.
+
 ## 1.0.0 — 2026-08-21
 
 First release. Everything before this was the repository's `main` branch, which

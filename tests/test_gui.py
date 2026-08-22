@@ -20,13 +20,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
     from PySide6.QtCore import QModelIndex, Qt
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QLabel
     from paddocks import gui
     QT = True
 except ImportError:  # pragma: no cover - depends on the machine
     QT = False
 
 from paddocks import apps, groups
+from paddocks import __version__
 
 from .support import write_desktop
 
@@ -274,3 +275,49 @@ class ScreenPicker(EditorFixture):
         self.set_screens([(1920, 1080)])
         self.editor = self.make_editor()
         self.assertEqual(self.editor.group_list.item(0).text(), "Dev")
+
+
+@unittest.skipUnless(QT, "PySide6 is not installed")
+class AboutTest(EditorFixture):
+    """Which version is running, and the block a bug report needs."""
+
+    def setUp(self):
+        super().setUp()
+        # Like the screen list, the Plasma version comes from the real shell,
+        # which no test may talk to.
+        self._real_version = gui.plasma.version
+        gui.plasma.version = lambda: "6.4.5"
+        self.addCleanup(
+            lambda: setattr(gui.plasma, "version", self._real_version))
+
+    def status_labels(self):
+        return [w.text() for w in self.editor.statusBar().findChildren(QLabel)]
+
+    def test_the_version_shows_without_opening_anything(self):
+        self.assertIn(f"Paddocks {__version__}", self.status_labels())
+
+    def test_the_menu_offers_about(self):
+        texts = [action.text() for action in self.editor.menu.actions()]
+        self.assertIn("&About Paddocks", texts)
+
+    def test_the_dialog_names_the_version(self):
+        about = gui.AboutDialog(self.editor, self.config_path)
+        self.addCleanup(about.deleteLater)
+        self.assertIn(__version__, about.details)
+
+    def test_the_details_carry_what_a_bug_report_needs(self):
+        details = gui.environment_report(self.config_path)
+        self.assertIn("6.4.5", details)
+        self.assertIn(str(self.config_path), details)
+        self.assertIn("Qt", details)
+        self.assertIn("Python", details)
+
+    def test_no_plasmashell_to_ask_is_said_rather_than_left_blank(self):
+        gui.plasma.version = lambda: ""
+        self.assertIn("not detected", gui.environment_report(self.config_path))
+
+    def test_copying_the_details_puts_them_on_the_clipboard(self):
+        about = gui.AboutDialog(self.editor, self.config_path)
+        self.addCleanup(about.deleteLater)
+        about._copy()
+        self.assertEqual(QApplication.clipboard().text(), about.details)
